@@ -27,8 +27,6 @@ func NewClient(token, baseUrl string) *Client {
 func (c *Client) Get(path string, response any) error {
 	req, err := http.NewRequest(http.MethodGet, c.baseURL+path, nil)
 
-	fmt.Println(c.baseURL + path)
-
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

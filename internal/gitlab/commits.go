@@ -11,9 +11,13 @@ type Commit struct {
 	Message string `json:"message"`
 }
 
-func (c *Client) GetCommitsBetween(projectID, fromSHA, branch string) ([]Commit, error) {
-	path := fmt.Sprintf("/projects/%s/repository/commits?ref_name%s..%s&per_page=50",
-		url.QueryEscape(projectID), url.QueryEscape(branch), url.QueryEscape(fromSHA))
+func (c *Client) GetCommitsBetween(projectID, fromSHA, toSHA string) ([]Commit, error) {
+	// TODO: handle pagination
+	path := fmt.Sprintf("/projects/%s/repository/commits?ref_name=%s..%s&per_page=50",
+		url.QueryEscape(projectID),
+		url.QueryEscape(fromSHA),
+		url.QueryEscape(toSHA),
+	)
 
 	var commits []Commit
 	if err := c.Get(path, &commits); err != nil {
