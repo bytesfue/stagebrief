@@ -40,6 +40,24 @@ func main() {
 		fmt.Printf("  %s  %s\n", c.ID[:8], c.Title)
 	}
 
+	files, err := client.GetChangedFiles(projectID, lastSuccessfulPipelineSHA, currentCommitSHA)
+	if err != nil {
+		log.Fatalf("failed to retrieve changed files: %w", err)
+	}
+
+	fmt.Printf("\nchanged files (%d):\n\n", len(files))
+	for _, file := range files {
+		status := "M"
+		switch {
+		case file.NewFile:
+			status = "A"
+		case file.DeletedFile:
+			status = "D"
+		case file.RenamedFile:
+			status = "R"
+		}
+		fmt.Printf("  %s  %s\n", status, file.NewPath)
+	}
 }
 
 func LoadEnv() {
