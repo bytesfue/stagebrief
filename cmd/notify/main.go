@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/bytesfue/stagingbrief/internal/gitlab"
+	"github.com/bytesfue/stagingbrief/internal/llm"
 	"github.com/joho/godotenv"
 )
 
@@ -58,6 +59,25 @@ func main() {
 		}
 		fmt.Printf("  %s  %s\n", status, file.NewPath)
 	}
+
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		log.Fatal("missing required env var: OPENAI_API_KEY")
+	}
+	model := os.Getenv("OPENAI_MODEL") // optional, defaults to gpt-4o-mini
+
+	llmClient := llm.NewClient(apiKey, model)
+
+	summary, err := llm.Summarise(llmClient, llm.Input{
+		Commits: commits,
+		Files:   files,
+	})
+	if err != nil {
+		log.Fatalf("summarise: %v", err)
+	}
+
+	fmt.Println("\n--- Summary ---")
+	fmt.Println(summary)
 }
 
 func LoadEnv() {
