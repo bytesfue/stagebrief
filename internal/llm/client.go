@@ -94,11 +94,15 @@ func (c *Client) ChatCompletion(systemPrompt, userPrompt string) (string, error)
 		return "", fmt.Errorf("decode response: %w", err)
 	}
 
+	if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == 429 {
+		return "", fmt.Errorf("%w: %s", ErrQuotaExceeded, chatResp.Error.Message)
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		if chatResp.Error != nil {
-			return "", fmt.Errorf("openai API error: %s", chatResp.Error.Message)
+			return "", fmt.Errorf("%w: %s", ErrAPIError, chatResp.Error.Message)
 		}
-		return "", fmt.Errorf("openai API returned status %d", resp.StatusCode)
+		return "", fmt.Errorf("%w: status %d", ErrAPIError, resp.StatusCode)
 	}
 
 	if len(chatResp.Choices) == 0 {

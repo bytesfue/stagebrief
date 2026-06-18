@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -73,7 +74,15 @@ func main() {
 		Files:   files,
 	})
 	if err != nil {
-		log.Fatalf("summarise: %v", err)
+		switch {
+		case errors.Is(err, llm.ErrQuotaExceeded):
+			summary = "⚠️ Could not generate summary — LLM quota exceeded. Check your API key billing."
+		case errors.Is(err, llm.ErrAPIError):
+			summary = fmt.Sprintf("⚠️ Could not generate summary — LLM API error: %v", err)
+		default:
+			summary = "⚠️ Could not generate summary — unexpected error. See CI logs for details."
+			log.Printf("summarise error: %v", err) // still log it, just don't fatal
+		}
 	}
 
 	fmt.Println("\n--- Summary ---")
