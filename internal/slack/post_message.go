@@ -16,8 +16,14 @@ type payload struct {
 	Text    string `json:"text"`
 }
 
-func (c *Client) PostSummary(projectName, summary string, commits []gitlab.Commit, files []gitlab.FileDiff) error {
-	msg := buildMessage(projectName, summary, commits, files)
+func (c *Client) PostSummary(
+	projectName,
+	summary string,
+	commits []gitlab.Commit,
+	files []gitlab.FileDiff,
+	cfg MessageConfig,
+) error {
+	msg := buildMessage(projectName, summary, commits, files, cfg)
 
 	body, err := json.Marshal(payload{
 		Channel: c.channel,
@@ -58,7 +64,13 @@ func (c *Client) PostSummary(projectName, summary string, commits []gitlab.Commi
 	return nil
 }
 
-func buildMessage(projectName, summary string, commits []gitlab.Commit, files []gitlab.FileDiff) string {
+func buildMessage(
+	projectName,
+	summary string,
+	commits []gitlab.Commit,
+	files []gitlab.FileDiff,
+	cfg MessageConfig,
+) string {
 	var sb strings.Builder
 
 	sb.WriteString(fmt.Sprintf("🚀 *Staging updated — %s*\n\n", projectName))
@@ -66,20 +78,38 @@ func buildMessage(projectName, summary string, commits []gitlab.Commit, files []
 	sb.WriteString(summary)
 	sb.WriteString("\n\n")
 
-	sb.WriteString("*Commits:*\n")
-	if len(commits) == 0 {
-		sb.WriteString("  (none)\n")
-	}
-	for _, c := range commits {
-		sb.WriteString(fmt.Sprintf("  • `%s` %s\n", c.ID[:8], c.Title))
+	if cfg.ShowRawCommits {
+		sb.WriteString("\n*Commits:*\n")
+		if len(commits) == 0 {
+			sb.WriteString("  (none)\n")
+		}
+		shown := commits
+		if cfg.MaxCommits > 0 && len(commits) > cfg.MaxCommits {
+			shown = commits[:cfg.MaxCommits]
+		}
+		for _, c := range shown {
+			sb.WriteString(fmt.Sprintf("  • `%s` %s\n", c.ID[:8], c.Title))
+		}
+		if len(commits) > len(shown) {
+			sb.WriteString(fmt.Sprintf("  _... and %d more commits_\n", len(commits)-len(shown)))
+		}
 	}
 
-	sb.WriteString("\n*Changed files:*\n")
-	if len(files) == 0 {
-		sb.WriteString("  (none)\n")
-	}
-	for _, f := range files {
-		sb.WriteString(fmt.Sprintf("  • %s %s\n", fileStatus(f), f.NewPath))
+	if cfg.ShowChangedFiles {
+		sb.WriteString("\n*Changed files:*\n")
+		if len(files) == 0 {
+			sb.WriteString("  (none)\n")
+		}
+		shown := files
+		if cfg.MaxFiles > 0 && len(files) > cfg.MaxFiles {
+			shown = files[:cfg.MaxFiles]
+		}
+		for _, f := range shown {
+			sb.WriteString(fmt.Sprintf("  • %s %s\n", fileStatus(f), f.NewPath))
+		}
+		if len(files) > len(shown) {
+			sb.WriteString(fmt.Sprintf("  _... and %d more files_\n", len(files)-len(shown)))
+		}
 	}
 
 	sb.WriteString("\n_⚠️ AI-generated summary — may contain mistakes. Always check the raw commits above._")

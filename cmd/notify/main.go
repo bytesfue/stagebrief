@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/bytesfue/stagingbrief/internal/gitlab"
 	"github.com/bytesfue/stagingbrief/internal/llm"
@@ -99,7 +100,7 @@ func main() {
 		fmt.Println("\n--- Summary ---")
 		fmt.Println(summary)
 
-		if err := slackClient.PostSummary(projectName, summary, commits, files); err != nil {
+		if err := slackClient.PostSummary(projectName, summary, commits, files, loadMessageConfig()); err != nil {
 			log.Fatalf("post to slack: %v", err)
 		}
 
@@ -112,4 +113,27 @@ func LoadEnv() {
 	if err := godotenv.Load(); err == nil {
 		log.Println("Loaded .env file")
 	}
+}
+
+func loadMessageConfig() slack.MessageConfig {
+	cfg := slack.DefaultConfig()
+
+	if v := os.Getenv("SHOW_CHANGED_FILES"); v == "false" {
+		cfg.ShowChangedFiles = false
+	}
+	if v := os.Getenv("SHOW_RAW_COMMITS"); v == "false" {
+		cfg.ShowRawCommits = false
+	}
+	if v := os.Getenv("MAX_FILES"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+			cfg.MaxFiles = n
+		}
+	}
+	if v := os.Getenv("MAX_COMMITS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+			cfg.MaxCommits = n
+		}
+	}
+
+	return cfg
 }
