@@ -2,17 +2,17 @@ name: Test
 
 on:
   push:
-    branches: ["**"]
+    branches: ["develop", "main"]
   pull_request:
-    branches: ["**"]
+    branches: ["main"]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5.4.0
         with:
           go-version: "1.26"
 

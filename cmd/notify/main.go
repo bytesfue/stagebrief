@@ -45,7 +45,7 @@ func main() {
 	var commits []gitlab.Commit
 	commits, err = client.GetCommitsBetween(projectID, lastSuccessfulPipelineSHA, currentCommitSHA)
 	if err != nil {
-		log.Fatalf("failed to retrieve commits: %w", err)
+		log.Fatalf("failed to retrieve commits: %v", err)
 	}
 
 	fmt.Printf("found %d commits since last deploy (%s):\n\n", len(commits), lastSuccessfulPipelineSHA[:8])
@@ -56,7 +56,7 @@ func main() {
 	if len(commits) > 0 {
 		files, err := client.GetChangedFiles(projectID, lastSuccessfulPipelineSHA, currentCommitSHA)
 		if err != nil {
-			log.Fatalf("failed to retrieve changed files: %w", err)
+			log.Fatalf("failed to retrieve changed files: %v", err)
 		}
 
 		fmt.Printf("\nchanged files (%d):\n\n", len(files))
