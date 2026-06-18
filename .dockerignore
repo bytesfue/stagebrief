@@ -1,0 +1,7 @@
+.env
+*.env
+bin/
+.git/
+.github/
+README.md
+DECISIONS.md
