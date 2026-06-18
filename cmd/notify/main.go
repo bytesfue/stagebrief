@@ -8,6 +8,7 @@ import (
 
 	"github.com/bytesfue/stagingbrief/internal/gitlab"
 	"github.com/bytesfue/stagingbrief/internal/llm"
+	"github.com/bytesfue/stagingbrief/internal/slack"
 	"github.com/joho/godotenv"
 )
 
@@ -19,12 +20,21 @@ func main() {
 	baseURL := os.Getenv("GITLAB_BASE_URL")
 	currentCommitSHA := os.Getenv("CI_COMMIT_SHA")
 	branch := os.Getenv("CI_COMMIT_BRANCH")
+	projectName := os.Getenv("GITLAB_PROJECT_NAME")
 
 	if token == "" || projectID == "" || baseURL == "" || currentCommitSHA == "" || branch == "" {
 		log.Fatal("missing environment variables")
 	}
-
 	client := gitlab.NewClient(token, baseURL)
+
+	botToken := os.Getenv("SLACK_BOT_TOKEN")
+	channel := os.Getenv("SLACK_CHANNEL_ID")
+
+	slackClient := slack.NewClient(botToken, channel)
+
+	if botToken == "" || channel == "" {
+		log.Fatal("missing required env vars: SLACK_BOT_TOKEN, SLACK_CHANNEL_ID")
+	}
 
 	lastSuccessfulPipelineSHA, err := client.GetLastSuccessfulPipelineSHA(projectID, branch, currentCommitSHA)
 	if err != nil {
@@ -88,6 +98,12 @@ func main() {
 
 		fmt.Println("\n--- Summary ---")
 		fmt.Println(summary)
+
+		if err := slackClient.PostSummary(projectName, summary, commits, files); err != nil {
+			log.Fatalf("post to slack: %v", err)
+		}
+
+		fmt.Println("✓ posted to slack")
 	}
 }
 
