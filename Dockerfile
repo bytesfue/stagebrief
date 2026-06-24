@@ -10,10 +10,11 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bin/notify ./cmd/notify
 
-# Final stage
-FROM scratch
+# Final stage — alpine instead of scratch for k8s runner compatibility
+FROM alpine:3.20
+
+RUN apk --no-cache add ca-certificates
 
 COPY --from=builder /bin/notify /notify
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 ENTRYPOINT ["/notify"]
