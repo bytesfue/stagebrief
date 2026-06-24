@@ -8,12 +8,12 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /notify ./cmd/notify
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bin/notify ./cmd/notify
 
 # Final stage
 FROM scratch
 
-COPY --from=builder /notify /notify
+COPY --from=builder /bin/notify /notify
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 ENTRYPOINT ["/notify"]
