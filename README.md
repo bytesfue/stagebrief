@@ -49,6 +49,9 @@ notify-staging:
     GITLAB_PROJECT_NAME: "Your Project Name"
 ```
 
+`CI_API_V4_URL` is a predefined GitLab CI variable and is injected
+automatically — no configuration needed..
+
 ### 2. Add the CI/CD variables to your GitLab project
 
 Settings → CI/CD → Variables:

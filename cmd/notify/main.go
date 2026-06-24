@@ -18,14 +18,31 @@ func main() {
 
 	token := os.Getenv("GITLAB_TOKEN")
 	projectID := os.Getenv("GITLAB_PROJECT_ID")
-	baseURL := os.Getenv("GITLAB_BASE_URL")
+	baseURL := os.Getenv("CI_API_V4_URL")
 	currentCommitSHA := os.Getenv("CI_COMMIT_SHA")
 	branch := os.Getenv("CI_COMMIT_BRANCH")
 	projectName := os.Getenv("GITLAB_PROJECT_NAME")
 
-	if token == "" || projectID == "" || baseURL == "" || currentCommitSHA == "" || branch == "" {
-		log.Fatal("missing environment variables")
+	if token == "" {
+		log.Fatalf("missing required env var: GITLAB_TOKEN")
 	}
+
+	if projectID == "" {
+		log.Fatalf("missing required env var: GITLAB_PROJECT_ID")
+	}
+
+	if baseURL == "" {
+		log.Fatalf("missing required env var: CI_API_V4_URL")
+	}
+
+	if currentCommitSHA == "" {
+		log.Fatalf("missing required env var: CI_COMMIT_SHA")
+	}
+
+	if branch == "" {
+		log.Fatalf("missing required env var: CI_COMMIT_BRANCH")
+	}
+
 	client := gitlab.NewClient(token, baseURL)
 
 	botToken := os.Getenv("SLACK_BOT_TOKEN")
