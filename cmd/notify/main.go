@@ -50,7 +50,7 @@ func main() {
 			log.Fatalf("failed to retrieve changed files: %v", err)
 		}
 
-		//fmt.Printf("\nchanged files (%d):\n\n", len(files))
+		/* fmt.Printf("\nchanged files (%d):\n\n", len(files))
 		for _, file := range files {
 			status := "M"
 			switch {
@@ -63,6 +63,7 @@ func main() {
 			}
 			fmt.Printf("  %s  %s\n", status, file.NewPath)
 		}
+		*/
 
 		result, err := llm.Summarise(llmClient, llm.Input{
 			Commits: commits,
