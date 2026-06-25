@@ -62,26 +62,34 @@ func main() {
 			fmt.Printf("  %s  %s\n", status, file.NewPath)
 		}
 
-		summary, err := llm.Summarise(llmClient, llm.Input{
+		result, err := llm.Summarise(llmClient, llm.Input{
 			Commits: commits,
 			Files:   files,
 		})
 		if err != nil {
 			switch {
 			case errors.Is(err, llm.ErrQuotaExceeded):
-				summary = "⚠️ Could not generate summary — LLM quota exceeded. Check your API key billing."
+				result.Summary = "⚠️ Could not generate summary — LLM quota exceeded. Check your API key billing."
 			case errors.Is(err, llm.ErrAPIError):
-				summary = fmt.Sprintf("⚠️ Could not generate summary — LLM API error: %v", err)
+				result.Summary = fmt.Sprintf("⚠️ Could not generate summary — LLM API error: %v", err)
 			default:
-				summary = "⚠️ Could not generate summary — unexpected error. See CI logs for details."
-				log.Printf("summarise error: %v", err) // still log it, just don't fatal
+				result.Summary = "⚠️ Could not generate summary — unexpected error. See CI logs for details."
+				log.Printf("summarise error: %v", err)
 			}
 		}
+
+		log.Printf("LLM usage — model: %s | prompt: %d tokens | completion: %d tokens | total: %d tokens | estimated cost: $%.6f",
+			cfg.OpenAIModel,
+			result.PromptTokens,
+			result.CompletionTokens,
+			result.TotalTokens,
+			result.EstimatedCostUSD,
+		)
 
 		//fmt.Println("\n--- Summary ---")
 		//fmt.Println(summary)
 
-		if err := slackClient.PostSummary(cfg.ProjectName, summary, commits, files, loadMessageConfig()); err != nil {
+		if err := slackClient.PostSummary(cfg.ProjectName, result.Summary, commits, files, loadMessageConfig()); err != nil {
 			log.Fatalf("post to slack: %v", err)
 		}
 

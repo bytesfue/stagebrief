@@ -69,13 +69,13 @@ func fileStatus(f gitlab.FileDiff) string {
 }
 
 // Summarise calls the LLM and returns a designer-friendly summary.
-func Summarise(client *Client, input Input) (string, error) {
+func Summarise(client *Client, input Input) (Result, error) {
 	prompt := BuildPrompt(input)
 
-	summary, err := client.ChatCompletion(systemPrompt, prompt)
+	result, err := client.ChatCompletion(systemPrompt, prompt)
 	if err != nil {
-		return "", fmt.Errorf("summarise: %w", err)
+		return Result{}, fmt.Errorf("summarise: %w", err)
 	}
 
-	return strings.TrimSpace(summary), nil
+	return result, nil
 }
