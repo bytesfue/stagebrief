@@ -38,9 +38,11 @@ func main() {
 	}
 
 	fmt.Printf("found %d commits since last deploy (%s):\n\n", len(commits), lastSuccessfulPipelineSHA[:8])
-	for _, c := range commits {
-		fmt.Printf("  %s  %s\n", c.ID[:8], c.Title)
-	}
+	/*
+		for _, c := range commits {
+			fmt.Printf("  %s  %s\n", c.ID[:8], c.Title)
+		}
+	*/
 
 	if len(commits) > 0 {
 		files, err := gitlabClient.GetChangedFiles(cfg.GitLabProjectID, lastSuccessfulPipelineSHA, cfg.CommitSHA)
