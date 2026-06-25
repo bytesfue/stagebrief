@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/bytesfue/stagingbrief/internal/config"
 	"github.com/bytesfue/stagingbrief/internal/gitlab"
 	"github.com/bytesfue/stagingbrief/internal/llm"
 	"github.com/bytesfue/stagingbrief/internal/slack"
@@ -16,51 +17,22 @@ import (
 func main() {
 	LoadEnv()
 
-	token := os.Getenv("GITLAB_TOKEN")
-	projectID := os.Getenv("GITLAB_PROJECT_ID")
-	baseURL := os.Getenv("CI_API_V4_URL")
-	currentCommitSHA := os.Getenv("CI_COMMIT_SHA")
-	branch := os.Getenv("CI_COMMIT_BRANCH")
-	projectName := os.Getenv("GITLAB_PROJECT_NAME")
-
-	if token == "" {
-		log.Fatalf("missing required env var: GITLAB_TOKEN")
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("configuration error: %v", err)
 	}
 
-	if projectID == "" {
-		log.Fatalf("missing required env var: GITLAB_PROJECT_ID")
-	}
+	gitlabClient := gitlab.NewClient(cfg.GitLabToken, cfg.GitLabAPIURL)
+	llmClient := llm.NewClient(cfg.OpenAIAPIKey, cfg.OpenAIModel)
+	slackClient := slack.NewClient(cfg.SlackBotToken, cfg.SlackChannel)
 
-	if baseURL == "" {
-		log.Fatalf("missing required env var: CI_API_V4_URL")
-	}
-
-	if currentCommitSHA == "" {
-		log.Fatalf("missing required env var: CI_COMMIT_SHA")
-	}
-
-	if branch == "" {
-		log.Fatalf("missing required env var: CI_COMMIT_BRANCH")
-	}
-
-	client := gitlab.NewClient(token, baseURL)
-
-	botToken := os.Getenv("SLACK_BOT_TOKEN")
-	channel := os.Getenv("SLACK_CHANNEL_ID")
-
-	slackClient := slack.NewClient(botToken, channel)
-
-	if botToken == "" || channel == "" {
-		log.Fatal("missing required env vars: SLACK_BOT_TOKEN, SLACK_CHANNEL_ID")
-	}
-
-	lastSuccessfulPipelineSHA, err := client.GetLastSuccessfulPipelineSHA(projectID, branch, currentCommitSHA)
+	lastSuccessfulPipelineSHA, err := gitlabClient.GetLastSuccessfulPipelineSHA(cfg.GitLabProjectID, cfg.CommitBranch, cfg.CommitSHA)
 	if err != nil {
 		log.Fatal("failed to retrieve last pipeline")
 	}
 
 	var commits []gitlab.Commit
-	commits, err = client.GetCommitsBetween(projectID, lastSuccessfulPipelineSHA, currentCommitSHA)
+	commits, err = gitlabClient.GetCommitsBetween(cfg.GitLabProjectID, lastSuccessfulPipelineSHA, cfg.CommitSHA)
 	if err != nil {
 		log.Fatalf("failed to retrieve commits: %v", err)
 	}
@@ -71,12 +43,12 @@ func main() {
 	}
 
 	if len(commits) > 0 {
-		files, err := client.GetChangedFiles(projectID, lastSuccessfulPipelineSHA, currentCommitSHA)
+		files, err := gitlabClient.GetChangedFiles(cfg.GitLabProjectID, lastSuccessfulPipelineSHA, cfg.CommitSHA)
 		if err != nil {
 			log.Fatalf("failed to retrieve changed files: %v", err)
 		}
 
-		fmt.Printf("\nchanged files (%d):\n\n", len(files))
+		//fmt.Printf("\nchanged files (%d):\n\n", len(files))
 		for _, file := range files {
 			status := "M"
 			switch {
@@ -89,14 +61,6 @@ func main() {
 			}
 			fmt.Printf("  %s  %s\n", status, file.NewPath)
 		}
-
-		apiKey := os.Getenv("OPENAI_API_KEY")
-		if apiKey == "" {
-			log.Fatal("missing required env var: OPENAI_API_KEY")
-		}
-		model := os.Getenv("OPENAI_MODEL") // optional, defaults to gpt-4o-mini
-
-		llmClient := llm.NewClient(apiKey, model)
 
 		summary, err := llm.Summarise(llmClient, llm.Input{
 			Commits: commits,
@@ -114,10 +78,10 @@ func main() {
 			}
 		}
 
-		fmt.Println("\n--- Summary ---")
-		fmt.Println(summary)
+		//fmt.Println("\n--- Summary ---")
+		//fmt.Println(summary)
 
-		if err := slackClient.PostSummary(projectName, summary, commits, files, loadMessageConfig()); err != nil {
+		if err := slackClient.PostSummary(cfg.ProjectName, summary, commits, files, loadMessageConfig()); err != nil {
 			log.Fatalf("post to slack: %v", err)
 		}
 
