@@ -120,12 +120,12 @@ func buildMessage(
 func fileStatus(f gitlab.FileDiff) string {
 	switch {
 	case f.NewFile:
-		return "A"
+		return "🟢 A"
 	case f.DeletedFile:
-		return "D"
+		return "🔴 D"
 	case f.RenamedFile:
-		return "R"
+		return "🟡 R"
 	default:
-		return "M"
+		return "🔵 M"
 	}
 }
