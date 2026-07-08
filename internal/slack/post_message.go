@@ -33,7 +33,7 @@ func (c *Client) PostSummary(
 		return fmt.Errorf("marshal payload: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, apiURL, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, c.baseURL, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("build request: %w", err)
 	}

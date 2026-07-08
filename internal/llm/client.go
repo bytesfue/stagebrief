@@ -20,12 +20,24 @@ type Client struct {
 	httpClient *http.Client
 }
 
-func NewClient(apiKey, model string) *Client {
+// Option configures optional Client behaviour, e.g. for tests.
+type Option func(*Client)
+
+// WithBaseURL overrides the OpenAI API base URL. Intended for tests that
+// point the client at a local httptest server; production callers should
+// leave this unset to use the default OpenAI endpoint.
+func WithBaseURL(baseURL string) Option {
+	return func(c *Client) {
+		c.baseURL = baseURL
+	}
+}
+
+func NewClient(apiKey, model string, opts ...Option) *Client {
 	if model == "" {
 		model = defaultModel
 	}
 
-	return &Client{
+	c := &Client{
 		apiKey:  apiKey,
 		model:   model,
 		baseURL: defaultBaseURL,
@@ -33,6 +45,12 @@ func NewClient(apiKey, model string) *Client {
 			Timeout: 30 * time.Second,
 		},
 	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c
 }
 
 type chatMessage struct {

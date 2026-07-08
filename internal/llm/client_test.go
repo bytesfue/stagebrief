@@ -5,18 +5,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 )
 
 func newTestClient(baseURL string) *Client {
-	return &Client{
-		apiKey:  "test-key",
-		model:   defaultModel,
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: 5 * time.Second,
-		},
-	}
+	return NewClient("test-key", defaultModel, WithBaseURL(baseURL))
 }
 
 func TestChatCompletion_RateLimitedWithoutErrorBody(t *testing.T) {
