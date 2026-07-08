@@ -35,7 +35,7 @@ StagingBrief fixes that with one CI stage and one Slack message.
 ```yaml
 notify-staging:
   stage: notify
-  image: bytesfue/stagingbrief:latest
+  image: bytesfue/stagingbrief:v1.0.0  # Pin to a specific version for reproducibility
   script:
     - /notify
   rules:
@@ -49,8 +49,8 @@ notify-staging:
     GITLAB_PROJECT_NAME: "Your Project Name"
 ```
 
-`CI_API_V4_URL` is a predefined GitLab CI variable and is injected
-automatically — no configuration needed..
+`CI_API_V4_URL`, `CI_COMMIT_SHA`, and `CI_COMMIT_BRANCH` are predefined GitLab CI variables
+and are injected automatically — no configuration needed.
 
 ### 2. Add the CI/CD variables to your GitLab project
 
@@ -101,6 +101,11 @@ All configuration is via environment variables passed through GitLab CI.
 StagingBrief sends only **commit messages and changed file paths** to the LLM API.
 Your source code, file contents, and diffs never leave your infrastructure.
 
+**Note on LLM summaries:** Because commit messages are sent to the LLM, a crafted or
+malicious commit message could influence the generated summary. The summary is advisory
+only — always verify against the raw commits and changed files list (which are displayed
+in the Slack message) before acting on it.
+
 If even commit messages are sensitive, you can self-host the entire tool —
 it's a single binary in a Docker container with no external dependencies beyond
 the APIs you configure.
@@ -125,6 +130,18 @@ giving you more control over which channel receives messages.
 - GitLab CI/CD pipeline
 - OpenAI API key ([platform.openai.com](https://platform.openai.com))
 - Slack workspace with a bot token
+
+---
+
+## Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to get started, run tests, and submit pull requests.
+
+---
+
+## Code of Conduct
+
+This project adheres to the Contributor Covenant [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you agree to uphold its terms.
 
 ---
 

@@ -47,32 +47,12 @@ func main() {
 	}
 
 	fmt.Printf("found %d commits since last deploy (%s):\n\n", len(commits), lastSuccessfulPipelineSHA[:8])
-	/*
-		for _, c := range commits {
-			fmt.Printf("  %s  %s\n", c.ID[:8], c.Title)
-		}
-	*/
 
 	if len(commits) > 0 {
 		files, err := gitlabClient.GetChangedFiles(cfg.GitLabProjectID, lastSuccessfulPipelineSHA, cfg.CommitSHA)
 		if err != nil {
 			log.Fatalf("failed to retrieve changed files: %v", err)
 		}
-
-		/* fmt.Printf("\nchanged files (%d):\n\n", len(files))
-		for _, file := range files {
-			status := "M"
-			switch {
-			case file.NewFile:
-				status = "A"
-			case file.DeletedFile:
-				status = "D"
-			case file.RenamedFile:
-				status = "R"
-			}
-			fmt.Printf("  %s  %s\n", status, file.NewPath)
-		}
-		*/
 
 		result, err := llm.Summarise(llmClient, llm.Input{
 			Commits: commits,
@@ -97,9 +77,6 @@ func main() {
 			result.TotalTokens,
 			result.EstimatedCostUSD,
 		)
-
-		//fmt.Println("\n--- Summary ---")
-		//fmt.Println(summary)
 
 		if err := slackClient.PostSummary(cfg.ProjectName, result.Summary, commits, files, loadMessageConfig()); err != nil {
 			log.Fatalf("post to slack: %v", err)
