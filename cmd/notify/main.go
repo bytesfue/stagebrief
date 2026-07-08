@@ -28,7 +28,16 @@ func main() {
 
 	lastSuccessfulPipelineSHA, err := gitlabClient.GetLastSuccessfulPipelineSHA(cfg.GitLabProjectID, cfg.CommitBranch, cfg.CommitSHA)
 	if err != nil {
-		log.Fatal("failed to retrieve last pipeline")
+		if errors.Is(err, gitlab.ErrNoPreviousPipeline) {
+			fmt.Println("no previous successful pipeline — this looks like the first deploy")
+			msg := "🚀 First deployment to staging — no prior deploy to compare against, so there's nothing to summarise yet."
+			if err := slackClient.PostSummary(cfg.ProjectName, msg, nil, nil, loadMessageConfig()); err != nil {
+				log.Fatalf("post to slack: %v", err)
+			}
+			fmt.Println("✓ posted to slack")
+			return
+		}
+		log.Fatalf("failed to retrieve last pipeline: %v", err)
 	}
 
 	var commits []gitlab.Commit

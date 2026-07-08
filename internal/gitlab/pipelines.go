@@ -38,5 +38,5 @@ func (c *Client) GetLastSuccessfulPipelineSHA(projectID, branch, currentSHA stri
 		}
 	}
 
-	return "", fmt.Errorf("no previous pipeline found")
+	return "", ErrNoPreviousPipeline
 }
