@@ -81,7 +81,7 @@ func (c *Client) PostSummary(
 	if err != nil {
 		return fmt.Errorf("post to slack: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Slack always returns 200 — errors are in the response body
 	respBody, err := io.ReadAll(resp.Body)

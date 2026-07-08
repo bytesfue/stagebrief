@@ -127,7 +127,7 @@ func (c *Client) ChatCompletion(systemPrompt, userPrompt string) (Result, error)
 	if err != nil {
 		return Result{}, fmt.Errorf("do request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

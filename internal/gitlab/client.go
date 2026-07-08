@@ -55,7 +55,7 @@ func (c *Client) getPage(path string, response any) (nextPage string, err error)
 	if err != nil {
 		return "", fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))

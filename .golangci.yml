@@ -1,0 +1,17 @@
+version: "2"
+
+linters:
+  exclusions:
+    rules:
+      # Test HTTP handlers and setup helpers intentionally ignore the errors
+      # from w.Write / resp.Body.Close — checking them adds noise without value.
+      - path: _test\.go
+        linters:
+          - errcheck
+
+      # QF1012 is a stylistic quickfix (WriteString(fmt.Sprintf(...)) ->
+      # fmt.Fprintf). The explicit form reads fine here and avoids introducing
+      # fmt.Fprintf's own unchecked-error noise.
+      - linters:
+          - staticcheck
+        text: QF1012
