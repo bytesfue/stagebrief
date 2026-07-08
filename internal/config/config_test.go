@@ -90,6 +90,7 @@ var optionalEnvVars = []string{
 	"SHOW_RAW_COMMITS",
 	"MAX_FILES",
 	"MAX_COMMITS",
+	"NOTIFY_ON_NO_CHANGES",
 }
 
 func clearOptionalEnvVars(t *testing.T) {
@@ -182,6 +183,9 @@ func TestLoad_DefaultsForOptionalVars(t *testing.T) {
 	if cfg.MaxCommits != 10 {
 		t.Errorf("MaxCommits = %d, want default 10", cfg.MaxCommits)
 	}
+	if !cfg.NotifyOnNoChanges {
+		t.Error("NotifyOnNoChanges = false, want default true")
+	}
 }
 
 func TestLoad_OverridesForOptionalVars(t *testing.T) {
@@ -195,6 +199,7 @@ func TestLoad_OverridesForOptionalVars(t *testing.T) {
 	t.Setenv("SHOW_RAW_COMMITS", "false")
 	t.Setenv("MAX_FILES", "5")
 	t.Setenv("MAX_COMMITS", "3")
+	t.Setenv("NOTIFY_ON_NO_CHANGES", "false")
 
 	cfg, err := Load()
 	if err != nil {
@@ -221,5 +226,8 @@ func TestLoad_OverridesForOptionalVars(t *testing.T) {
 	}
 	if cfg.MaxCommits != 3 {
 		t.Errorf("MaxCommits = %d, want 3", cfg.MaxCommits)
+	}
+	if cfg.NotifyOnNoChanges {
+		t.Error("NotifyOnNoChanges = true, want false")
 	}
 }

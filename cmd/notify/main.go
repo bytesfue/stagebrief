@@ -53,42 +53,54 @@ func main() {
 
 	fmt.Printf("found %d commits since last deploy (%s):\n\n", len(commits), lastSuccessfulPipelineSHA[:8])
 
-	if len(commits) > 0 {
-		files, err := gitlabClient.GetChangedFiles(cfg.GitLabProjectID, lastSuccessfulPipelineSHA, cfg.CommitSHA)
-		if err != nil {
-			log.Fatalf("failed to retrieve changed files: %v", err)
+	if len(commits) == 0 {
+		if !cfg.NotifyOnNoChanges {
+			fmt.Println("no commits since last deploy — NOTIFY_ON_NO_CHANGES is false, skipping Slack notification")
+			return
 		}
 
-		result, err := llm.Summarise(llmClient, llm.Input{
-			Commits: commits,
-			Files:   files,
-		})
-		if err != nil {
-			switch {
-			case errors.Is(err, llm.ErrQuotaExceeded):
-				result.Summary = "⚠️ Could not generate summary — LLM quota exceeded. Check your API key billing."
-			case errors.Is(err, llm.ErrAPIError):
-				result.Summary = fmt.Sprintf("⚠️ Could not generate summary — LLM API error: %v", err)
-			default:
-				result.Summary = "⚠️ Could not generate summary — unexpected error. See CI logs for details."
-				log.Printf("summarise error: %v", err)
-			}
-		}
-
-		log.Printf("LLM usage — model: %s | prompt: %d tokens | completion: %d tokens | total: %d tokens | estimated cost: $%.6f",
-			cfg.OpenAIModel,
-			result.PromptTokens,
-			result.CompletionTokens,
-			result.TotalTokens,
-			result.EstimatedCostUSD,
-		)
-
-		if err := slackClient.PostSummary(cfg.ProjectName, result.Summary, commits, files, messageConfig); err != nil {
+		msg := "✅ Staging redeployed — no new commits since the last deploy."
+		if err := slackClient.PostSummary(cfg.ProjectName, msg, nil, nil, messageConfig); err != nil {
 			log.Fatalf("post to slack: %v", err)
 		}
-
 		fmt.Println("✓ posted to slack")
+		return
 	}
+
+	files, err := gitlabClient.GetChangedFiles(cfg.GitLabProjectID, lastSuccessfulPipelineSHA, cfg.CommitSHA)
+	if err != nil {
+		log.Fatalf("failed to retrieve changed files: %v", err)
+	}
+
+	result, err := llm.Summarise(llmClient, llm.Input{
+		Commits: commits,
+		Files:   files,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, llm.ErrQuotaExceeded):
+			result.Summary = "⚠️ Could not generate summary — LLM quota exceeded. Check your API key billing."
+		case errors.Is(err, llm.ErrAPIError):
+			result.Summary = fmt.Sprintf("⚠️ Could not generate summary — LLM API error: %v", err)
+		default:
+			result.Summary = "⚠️ Could not generate summary — unexpected error. See CI logs for details."
+			log.Printf("summarise error: %v", err)
+		}
+	}
+
+	log.Printf("LLM usage — model: %s | prompt: %d tokens | completion: %d tokens | total: %d tokens | estimated cost: $%.6f",
+		cfg.OpenAIModel,
+		result.PromptTokens,
+		result.CompletionTokens,
+		result.TotalTokens,
+		result.EstimatedCostUSD,
+	)
+
+	if err := slackClient.PostSummary(cfg.ProjectName, result.Summary, commits, files, messageConfig); err != nil {
+		log.Fatalf("post to slack: %v", err)
+	}
+
+	fmt.Println("✓ posted to slack")
 }
 
 func LoadEnv() {

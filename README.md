@@ -26,6 +26,12 @@ StagingBrief fixes that with one CI stage and one Slack message.
 3. An LLM summarises the changes in plain language — no jargon, no commit hashes
 4. Your team receives a Slack message with the summary, raw commits, and changed files
 
+If there are no commits since the last deploy (e.g. a pipeline re-run with no new code),
+StagingBrief posts a brief "no changes" message rather than staying silent, so you always
+get a signal that the deploy happened. Set `NOTIFY_ON_NO_CHANGES=false` to suppress this
+and skip notifying entirely in that case. The same applies to a project's very first
+deploy, when there's no previous pipeline to compare against.
+
 ---
 
 ## Quick start
@@ -93,6 +99,7 @@ All configuration is via environment variables passed through GitLab CI.
 | `SHOW_RAW_COMMITS` | `true` | Show raw commits section in Slack message |
 | `MAX_FILES` | `10` | Maximum changed files to show (0 = no limit) |
 | `MAX_COMMITS` | `10` | Maximum commits to show (0 = no limit) |
+| `NOTIFY_ON_NO_CHANGES` | `true` | Post a brief Slack message even when there are no commits since the last deploy (e.g. a re-run with no code changes). Set to `false` to stay silent instead. |
 
 ---
 

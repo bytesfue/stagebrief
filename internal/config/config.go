@@ -33,6 +33,9 @@ type Config struct {
 	ShowRawCommits   bool
 	MaxFiles         int
 	MaxCommits       int
+
+	// Behaviour
+	NotifyOnNoChanges bool
 }
 
 // Load reads all configuration from environment variables,
@@ -101,6 +104,8 @@ func Load() (*Config, error) {
 	cfg.ShowRawCommits = envBool("SHOW_RAW_COMMITS", true)
 	cfg.MaxFiles = envInt("MAX_FILES", 10)
 	cfg.MaxCommits = envInt("MAX_COMMITS", 10)
+
+	cfg.NotifyOnNoChanges = envBool("NOTIFY_ON_NO_CHANGES", true)
 
 	return cfg, nil
 }
