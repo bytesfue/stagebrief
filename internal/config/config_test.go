@@ -86,12 +86,10 @@ var optionalEnvVars = []string{
 	"CI_API_V4_URL",
 	"OPENAI_MODEL",
 	"GITLAB_PROJECT_NAME",
-	"STAGING_URL",
 	"SHOW_CHANGED_FILES",
 	"SHOW_RAW_COMMITS",
 	"MAX_FILES",
 	"MAX_COMMITS",
-	"SKIP_PATTERNS",
 }
 
 func clearOptionalEnvVars(t *testing.T) {
@@ -172,9 +170,6 @@ func TestLoad_DefaultsForOptionalVars(t *testing.T) {
 	if cfg.ProjectName != cfg.GitLabProjectID {
 		t.Errorf("ProjectName = %q, want it to default to GitLabProjectID %q", cfg.ProjectName, cfg.GitLabProjectID)
 	}
-	if cfg.StagingURL != "" {
-		t.Errorf("StagingURL = %q, want empty default", cfg.StagingURL)
-	}
 	if !cfg.ShowChangedFiles {
 		t.Error("ShowChangedFiles = false, want default true")
 	}
@@ -187,9 +182,6 @@ func TestLoad_DefaultsForOptionalVars(t *testing.T) {
 	if cfg.MaxCommits != 10 {
 		t.Errorf("MaxCommits = %d, want default 10", cfg.MaxCommits)
 	}
-	if cfg.SkipPatterns != nil {
-		t.Errorf("SkipPatterns = %v, want nil default", cfg.SkipPatterns)
-	}
 }
 
 func TestLoad_OverridesForOptionalVars(t *testing.T) {
@@ -199,12 +191,10 @@ func TestLoad_OverridesForOptionalVars(t *testing.T) {
 	t.Setenv("CI_API_V4_URL", "https://gitlab.example.com/api/v4")
 	t.Setenv("OPENAI_MODEL", "gpt-4o")
 	t.Setenv("GITLAB_PROJECT_NAME", "My Project")
-	t.Setenv("STAGING_URL", "https://staging.example.com")
 	t.Setenv("SHOW_CHANGED_FILES", "false")
 	t.Setenv("SHOW_RAW_COMMITS", "false")
 	t.Setenv("MAX_FILES", "5")
 	t.Setenv("MAX_COMMITS", "3")
-	t.Setenv("SKIP_PATTERNS", "*.md, docs/, , CHANGELOG.md")
 
 	cfg, err := Load()
 	if err != nil {
@@ -220,9 +210,6 @@ func TestLoad_OverridesForOptionalVars(t *testing.T) {
 	if cfg.ProjectName != "My Project" {
 		t.Errorf("ProjectName = %q", cfg.ProjectName)
 	}
-	if cfg.StagingURL != "https://staging.example.com" {
-		t.Errorf("StagingURL = %q", cfg.StagingURL)
-	}
 	if cfg.ShowChangedFiles {
 		t.Error("ShowChangedFiles = true, want false")
 	}
@@ -234,15 +221,5 @@ func TestLoad_OverridesForOptionalVars(t *testing.T) {
 	}
 	if cfg.MaxCommits != 3 {
 		t.Errorf("MaxCommits = %d, want 3", cfg.MaxCommits)
-	}
-
-	wantPatterns := []string{"*.md", "docs/", "CHANGELOG.md"}
-	if len(cfg.SkipPatterns) != len(wantPatterns) {
-		t.Fatalf("SkipPatterns = %v, want %v", cfg.SkipPatterns, wantPatterns)
-	}
-	for i, want := range wantPatterns {
-		if cfg.SkipPatterns[i] != want {
-			t.Errorf("SkipPatterns[%d] = %q, want %q", i, cfg.SkipPatterns[i], want)
-		}
 	}
 }

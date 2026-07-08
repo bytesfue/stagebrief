@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -28,16 +27,12 @@ type Config struct {
 
 	// Display
 	ProjectName string
-	StagingURL  string
 
 	// Message config
 	ShowChangedFiles bool
 	ShowRawCommits   bool
 	MaxFiles         int
 	MaxCommits       int
-
-	// Behaviour
-	SkipPatterns []string
 }
 
 // Load reads all configuration from environment variables,
@@ -102,32 +97,12 @@ func Load() (*Config, error) {
 		cfg.ProjectName = cfg.GitLabProjectID
 	}
 
-	cfg.StagingURL = os.Getenv("STAGING_URL")
-
 	cfg.ShowChangedFiles = envBool("SHOW_CHANGED_FILES", true)
 	cfg.ShowRawCommits = envBool("SHOW_RAW_COMMITS", true)
 	cfg.MaxFiles = envInt("MAX_FILES", 10)
 	cfg.MaxCommits = envInt("MAX_COMMITS", 10)
 
-	if patterns := os.Getenv("SKIP_PATTERNS"); patterns != "" {
-		for _, p := range strings.Split(patterns, ",") {
-			if trimmed := strings.TrimSpace(p); trimmed != "" {
-				cfg.SkipPatterns = append(cfg.SkipPatterns, trimmed)
-			}
-		}
-	}
-
 	return cfg, nil
-}
-
-// Require returns the named env var or adds it to the missing list.
-// For use in tests or future extensions.
-func Require(name string) (string, error) {
-	v := os.Getenv(name)
-	if v == "" {
-		return "", fmt.Errorf("%w: %s", errors.New("missing required env var"), name)
-	}
-	return v, nil
 }
 
 func envBool(key string, defaultVal bool) bool {
