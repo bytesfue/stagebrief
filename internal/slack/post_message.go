@@ -73,9 +73,9 @@ func buildMessage(
 ) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("🚀 *Staging updated — %s*\n\n", projectName))
+	sb.WriteString(fmt.Sprintf("🚀 *Staging updated — %s*\n\n", escapeSlack(projectName)))
 
-	sb.WriteString(summary)
+	sb.WriteString(escapeSlack(summary))
 	sb.WriteString("\n\n")
 
 	if cfg.ShowRawCommits {
@@ -88,7 +88,7 @@ func buildMessage(
 			shown = commits[:cfg.MaxCommits]
 		}
 		for _, c := range shown {
-			sb.WriteString(fmt.Sprintf("  • `%s` %s\n", c.ID[:8], c.Title))
+			sb.WriteString(fmt.Sprintf("  • `%s` %s\n", c.ID[:8], escapeSlack(c.Title)))
 		}
 		if len(commits) > len(shown) {
 			sb.WriteString(fmt.Sprintf("  _... and %d more commits_\n", len(commits)-len(shown)))
@@ -105,7 +105,7 @@ func buildMessage(
 			shown = files[:cfg.MaxFiles]
 		}
 		for _, f := range shown {
-			sb.WriteString(fmt.Sprintf("  • %s %s\n", fileStatus(f), f.NewPath))
+			sb.WriteString(fmt.Sprintf("  • %s %s\n", fileStatus(f), escapeSlack(f.NewPath)))
 		}
 		if len(files) > len(shown) {
 			sb.WriteString(fmt.Sprintf("  _... and %d more files_\n", len(files)-len(shown)))
@@ -115,6 +115,16 @@ func buildMessage(
 	sb.WriteString("\n_⚠️ AI-generated summary — may contain mistakes. Always check the raw commits above._")
 
 	return sb.String()
+}
+
+// escapeSlack escapes text per Slack's mrkdwn rules so it can't be
+// interpreted as markup or special mentions (e.g. <!channel>, <@U…>).
+// See https://api.slack.com/reference/surfaces/formatting#escaping
+func escapeSlack(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	return s
 }
 
 func fileStatus(f gitlab.FileDiff) string {
