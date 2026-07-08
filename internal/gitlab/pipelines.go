@@ -21,20 +21,31 @@ type Pipeline struct {
 }
 
 func (c *Client) GetLastSuccessfulPipelineSHA(projectID, branch, currentSHA string) (string, error) {
-	path := fmt.Sprintf("/projects/%s/pipelines/?ref=%s&status=success&order_by=id&sort=desc&per_page=20",
+	basePath := fmt.Sprintf("/projects/%s/pipelines/?ref=%s&status=success&order_by=id&sort=desc&per_page=100",
 		url.QueryEscape(projectID),
 		url.QueryEscape(branch),
 	)
 
-	var pipelines []Pipeline
-	if err := c.Get(path, &pipelines); err != nil {
-		return "", fmt.Errorf("failed to get pipelines: %w", err)
-	}
+	for page := 1; ; page++ {
+		if page > maxPages {
+			return "", fmt.Errorf("exceeded maximum pagination depth (%d pages) searching for previous pipeline", maxPages)
+		}
 
-	// get the previous pipeline before the current one
-	for _, pipeline := range pipelines {
-		if pipeline.Sha != currentSHA {
-			return pipeline.Sha, nil
+		var pipelines []Pipeline
+		nextPage, err := c.getPage(fmt.Sprintf("%s&page=%d", basePath, page), &pipelines)
+		if err != nil {
+			return "", fmt.Errorf("failed to get pipelines: %w", err)
+		}
+
+		// get the previous pipeline before the current one
+		for _, pipeline := range pipelines {
+			if pipeline.Sha != currentSHA {
+				return pipeline.Sha, nil
+			}
+		}
+
+		if nextPage == "" {
+			break
 		}
 	}
 

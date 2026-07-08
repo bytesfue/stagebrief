@@ -25,19 +25,32 @@ type FileDiff struct {
 }
 
 func (c *Client) GetCommitsBetween(projectID, fromSHA, toSHA string) ([]Commit, error) {
-	// TODO: handle pagination
-	path := fmt.Sprintf("/projects/%s/repository/commits?ref_name=%s..%s&per_page=50",
+	basePath := fmt.Sprintf("/projects/%s/repository/commits?ref_name=%s..%s&per_page=100",
 		url.QueryEscape(projectID),
 		url.QueryEscape(fromSHA),
 		url.QueryEscape(toSHA),
 	)
 
-	var commits []Commit
-	if err := c.Get(path, &commits); err != nil {
-		return nil, fmt.Errorf("failed to retrieve commits: %w", err)
+	var all []Commit
+	for page := 1; ; page++ {
+		if page > maxPages {
+			return nil, fmt.Errorf("exceeded maximum pagination depth (%d pages) fetching commits", maxPages)
+		}
+
+		var commits []Commit
+		nextPage, err := c.getPage(fmt.Sprintf("%s&page=%d", basePath, page), &commits)
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve commits: %w", err)
+		}
+
+		all = append(all, commits...)
+
+		if nextPage == "" {
+			break
+		}
 	}
 
-	return commits, nil
+	return all, nil
 }
 
 func (c *Client) GetChangedFiles(projectID, fromSHA, toSHA string) ([]FileDiff, error) {
