@@ -101,6 +101,12 @@ All configuration is via environment variables passed through GitLab CI.
 | `MAX_COMMITS` | `10` | Maximum commits to show (0 = no limit) |
 | `NOTIFY_ON_NO_CHANGES` | `true` | Post a brief Slack message even when there are no commits since the last deploy (e.g. a re-run with no code changes). Set to `false` to stay silent instead. |
 
+Even with `MAX_FILES`/`MAX_COMMITS` limits, an unusually large deploy could still
+produce a message that exceeds Slack's ~40,000-character size limit. If that
+happens, StagingBrief hard-truncates the message and appends a notice — you'll
+still get a Slack notification, just with a note that some detail was cut off
+in favor of checking GitLab directly.
+
 ---
 
 ## Privacy

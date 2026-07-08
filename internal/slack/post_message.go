@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/bytesfue/stagingbrief/internal/gitlab"
 )
@@ -16,6 +17,41 @@ type payload struct {
 	Text    string `json:"text"`
 }
 
+// maxMessageLength is Slack's documented limit for the chat.postMessage
+// text field (40,000 characters). We treat it as a byte cap, which is
+// strictly more conservative than a character cap for any multi-byte
+// (e.g. emoji-containing) content. Var rather than const so tests can
+// shrink it to exercise truncation without building 40,000-byte fixtures.
+var maxMessageLength = 40000
+
+const truncationNotice = "\n\n_⚠️ Message truncated — it exceeded Slack's size limit. See GitLab for the full commit and file list._"
+
+// truncateForSlack hard-truncates msg to fit within Slack's message size
+// limit, appending a notice so the truncation is visible rather than
+// silently cutting off content (or failing to post at all).
+func truncateForSlack(msg string) string {
+	if len(msg) <= maxMessageLength {
+		return msg
+	}
+
+	cut := maxMessageLength - len(truncationNotice)
+	if cut < 0 {
+		cut = 0
+	}
+	truncated := msg[:cut]
+
+	// Avoid splitting a multi-byte UTF-8 rune (e.g. an emoji) at the cut point.
+	for len(truncated) > 0 {
+		r, size := utf8.DecodeLastRuneInString(truncated)
+		if r != utf8.RuneError || size != 1 {
+			break
+		}
+		truncated = truncated[:len(truncated)-1]
+	}
+
+	return truncated + truncationNotice
+}
+
 func (c *Client) PostSummary(
 	projectName,
 	summary string,
@@ -23,7 +59,7 @@ func (c *Client) PostSummary(
 	files []gitlab.FileDiff,
 	cfg MessageConfig,
 ) error {
-	msg := buildMessage(projectName, summary, commits, files, cfg)
+	msg := truncateForSlack(buildMessage(projectName, summary, commits, files, cfg))
 
 	body, err := json.Marshal(payload{
 		Channel: c.channel,

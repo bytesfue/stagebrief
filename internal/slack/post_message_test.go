@@ -1,9 +1,13 @@
 package slack
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/bytesfue/stagingbrief/internal/gitlab"
 )
@@ -202,6 +206,103 @@ func TestBuildMessage_EmptyCommitsAndFilesShowNone(t *testing.T) {
 	}
 	if !strings.Contains(msg, "*Changed files:*\n  (none)") {
 		t.Errorf("expected '(none)' for empty files, got:\n%s", msg)
+	}
+}
+
+func TestTruncateForSlack_LeavesShortMessageUnchanged(t *testing.T) {
+	msg := "a short message that is well within the limit"
+
+	got := truncateForSlack(msg)
+
+	if got != msg {
+		t.Errorf("expected message to be returned unchanged, got: %q", got)
+	}
+}
+
+func TestTruncateForSlack_TruncatesOversizedMessage(t *testing.T) {
+	msg := strings.Repeat("x", maxMessageLength*2)
+
+	got := truncateForSlack(msg)
+
+	if len(got) > maxMessageLength {
+		t.Fatalf("expected truncated message to be within %d bytes, got %d", maxMessageLength, len(got))
+	}
+	if !strings.Contains(got, "Message truncated") {
+		t.Errorf("expected truncation notice in message, got tail: %q", got[max(0, len(got)-120):])
+	}
+}
+
+func TestTruncateForSlack_DoesNotSplitMultiByteRune(t *testing.T) {
+	// Build a message that's oversized and ends with a run of multi-byte
+	// emoji so the byte-based cut point is likely to land mid-rune.
+	msg := strings.Repeat("x", maxMessageLength) + strings.Repeat("🚀", 100)
+
+	got := truncateForSlack(msg)
+
+	if len(got) > maxMessageLength {
+		t.Fatalf("expected truncated message to be within %d bytes, got %d", maxMessageLength, len(got))
+	}
+	if !utf8.ValidString(got) {
+		t.Fatal("truncated message contains an invalid (split) UTF-8 rune")
+	}
+}
+
+func TestTruncateForSlack_HandlesLimitSmallerThanNotice(t *testing.T) {
+	// Shrink the limit below the notice's own length so the cut point
+	// would go negative without the defensive clamp in truncateForSlack.
+	origLimit := maxMessageLength
+	maxMessageLength = 10
+	defer func() { maxMessageLength = origLimit }()
+
+	msg := strings.Repeat("y", 100)
+
+	got := truncateForSlack(msg)
+
+	// cut clamps to 0, so the content is dropped entirely and only the
+	// notice itself remains.
+	if got != truncationNotice {
+		t.Fatalf("expected result to be exactly the truncation notice, got %q", got)
+	}
+	if !utf8.ValidString(got) {
+		t.Fatal("result contains invalid UTF-8")
+	}
+}
+
+func TestPostSummary_TruncatesOversizedPayload(t *testing.T) {
+	var gotPayload payload
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&gotPayload); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"ok": true}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-token", "C123", WithBaseURL(server.URL))
+
+	// Build a huge commit list so the rendered message vastly exceeds Slack's limit.
+	commits := make([]gitlab.Commit, 5000)
+	for i := range commits {
+		commits[i] = gitlab.Commit{
+			ID:    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			Title: fmt.Sprintf("commit number %d with a reasonably long descriptive title", i),
+		}
+	}
+	cfg := DefaultConfig()
+	cfg.MaxCommits = 0 // no truncation from message config — forces the size guard to kick in
+
+	err := client.PostSummary("demo-project", "summary", commits, nil, cfg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(gotPayload.Text) > maxMessageLength {
+		t.Fatalf("expected outgoing payload text within %d bytes, got %d", maxMessageLength, len(gotPayload.Text))
+	}
+	if !strings.Contains(gotPayload.Text, "Message truncated") {
+		t.Error("expected truncation notice in outgoing payload")
 	}
 }
 
