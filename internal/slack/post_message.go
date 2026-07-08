@@ -88,7 +88,7 @@ func buildMessage(
 			shown = commits[:cfg.MaxCommits]
 		}
 		for _, c := range shown {
-			sb.WriteString(fmt.Sprintf("  • `%s` %s\n", c.ID[:8], escapeSlack(c.Title)))
+			sb.WriteString(fmt.Sprintf("  • `%s` %s\n", shortSHA(c.ID), escapeSlack(c.Title)))
 		}
 		if len(commits) > len(shown) {
 			sb.WriteString(fmt.Sprintf("  _... and %d more commits_\n", len(commits)-len(shown)))
@@ -125,6 +125,15 @@ func escapeSlack(s string) string {
 	s = strings.ReplaceAll(s, "<", "&lt;")
 	s = strings.ReplaceAll(s, ">", "&gt;")
 	return s
+}
+
+// shortSHA returns up to the first 8 characters of a commit SHA, without
+// panicking if the SHA is shorter than that (e.g. in tests or truncated data).
+func shortSHA(id string) string {
+	if len(id) > 8 {
+		return id[:8]
+	}
+	return id
 }
 
 func fileStatus(f gitlab.FileDiff) string {
