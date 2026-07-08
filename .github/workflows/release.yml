@@ -6,7 +6,11 @@ on:
       - "v*.*.*"
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
   release:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
@@ -29,6 +33,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            VERSION=${{ github.ref_name }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/stagingbrief:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/stagingbrief:${{ github.ref_name }}

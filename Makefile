@@ -1,7 +1,9 @@
 .PHONY: run build
 
+VERSION ?= dev
+
 run:
 	go run ./cmd/notify
 
 build:
-	go build -o bin/notify ./cmd/notify
+	go build -ldflags "-X main.version=$(VERSION)" -o bin/notify ./cmd/notify

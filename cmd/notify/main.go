@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 
@@ -12,7 +13,22 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// version is stamped at build time via:
+//
+//	go build -ldflags "-X main.version=v1.2.3"
+//
+// and defaults to "dev" for local, unstamped builds.
+var version = "dev"
+
 func main() {
+	showVersion := flag.Bool("version", false, "print version and exit")
+	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(version)
+		return
+	}
+
 	LoadEnv()
 
 	cfg, err := config.Load()
