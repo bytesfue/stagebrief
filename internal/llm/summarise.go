@@ -49,23 +49,10 @@ func BuildPrompt(input Input) string {
 		sb.WriteString("  (none)\n")
 	}
 	for _, f := range input.Files {
-		sb.WriteString(fmt.Sprintf("  %s  %s\n", fileStatus(f), f.NewPath))
+		sb.WriteString(fmt.Sprintf("  %s  %s\n", f.Status(), f.NewPath))
 	}
 
 	return sb.String()
-}
-
-func fileStatus(f gitlab.FileDiff) string {
-	switch {
-	case f.NewFile:
-		return "A"
-	case f.DeletedFile:
-		return "D"
-	case f.RenamedFile:
-		return "R"
-	default:
-		return "M"
-	}
 }
 
 // Summarise calls the LLM and returns a designer-friendly summary.

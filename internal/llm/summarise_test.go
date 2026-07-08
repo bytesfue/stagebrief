@@ -72,24 +72,3 @@ func TestBuildPrompt(t *testing.T) {
 		})
 	}
 }
-
-func TestFileStatus(t *testing.T) {
-	tests := []struct {
-		name string
-		file gitlab.FileDiff
-		want string
-	}{
-		{"added", gitlab.FileDiff{NewFile: true}, "A"},
-		{"deleted", gitlab.FileDiff{DeletedFile: true}, "D"},
-		{"renamed", gitlab.FileDiff{RenamedFile: true}, "R"},
-		{"modified (default)", gitlab.FileDiff{}, "M"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := fileStatus(tt.file); got != tt.want {
-				t.Errorf("fileStatus() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}

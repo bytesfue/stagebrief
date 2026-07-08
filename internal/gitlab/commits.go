@@ -24,6 +24,21 @@ type FileDiff struct {
 	DeletedFile bool   `json:"deleted_file"`
 }
 
+// Status returns a single-letter code describing the change: "A" added,
+// "D" deleted, "R" renamed, "M" modified (default).
+func (f FileDiff) Status() string {
+	switch {
+	case f.NewFile:
+		return "A"
+	case f.DeletedFile:
+		return "D"
+	case f.RenamedFile:
+		return "R"
+	default:
+		return "M"
+	}
+}
+
 func (c *Client) GetCommitsBetween(projectID, fromSHA, toSHA string) ([]Commit, error) {
 	basePath := fmt.Sprintf("/projects/%s/repository/commits?ref_name=%s..%s&per_page=100",
 		url.QueryEscape(projectID),

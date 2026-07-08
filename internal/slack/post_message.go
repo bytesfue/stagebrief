@@ -105,7 +105,7 @@ func buildMessage(
 			shown = files[:cfg.MaxFiles]
 		}
 		for _, f := range shown {
-			sb.WriteString(fmt.Sprintf("  • %s %s\n", fileStatus(f), escapeSlack(f.NewPath)))
+			sb.WriteString(fmt.Sprintf("  • %s %s\n", f.Status(), escapeSlack(f.NewPath)))
 		}
 		if len(files) > len(shown) {
 			sb.WriteString(fmt.Sprintf("  _... and %d more files_\n", len(files)-len(shown)))
@@ -134,17 +134,4 @@ func shortSHA(id string) string {
 		return id[:8]
 	}
 	return id
-}
-
-func fileStatus(f gitlab.FileDiff) string {
-	switch {
-	case f.NewFile:
-		return "A"
-	case f.DeletedFile:
-		return "D"
-	case f.RenamedFile:
-		return "R"
-	default:
-		return "M"
-	}
 }
