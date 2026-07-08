@@ -30,6 +30,9 @@ jobs:
         with:
           version: latest
 
+      - name: Vulnerability check
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
       - name: Check go.mod/go.sum are tidy
         run: |
           go mod tidy
