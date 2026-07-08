@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
-	"strconv"
 
 	"github.com/bytesfue/stagingbrief/internal/config"
 	"github.com/bytesfue/stagingbrief/internal/gitlab"
@@ -22,6 +20,13 @@ func main() {
 		log.Fatalf("configuration error: %v", err)
 	}
 
+	messageConfig := slack.MessageConfig{
+		ShowChangedFiles: cfg.ShowChangedFiles,
+		ShowRawCommits:   cfg.ShowRawCommits,
+		MaxFiles:         cfg.MaxFiles,
+		MaxCommits:       cfg.MaxCommits,
+	}
+
 	gitlabClient := gitlab.NewClient(cfg.GitLabToken, cfg.GitLabAPIURL)
 	llmClient := llm.NewClient(cfg.OpenAIAPIKey, cfg.OpenAIModel)
 	slackClient := slack.NewClient(cfg.SlackBotToken, cfg.SlackChannel)
@@ -31,7 +36,7 @@ func main() {
 		if errors.Is(err, gitlab.ErrNoPreviousPipeline) {
 			fmt.Println("no previous successful pipeline — this looks like the first deploy")
 			msg := "🚀 First deployment to staging — no prior deploy to compare against, so there's nothing to summarise yet."
-			if err := slackClient.PostSummary(cfg.ProjectName, msg, nil, nil, loadMessageConfig()); err != nil {
+			if err := slackClient.PostSummary(cfg.ProjectName, msg, nil, nil, messageConfig); err != nil {
 				log.Fatalf("post to slack: %v", err)
 			}
 			fmt.Println("✓ posted to slack")
@@ -78,7 +83,7 @@ func main() {
 			result.EstimatedCostUSD,
 		)
 
-		if err := slackClient.PostSummary(cfg.ProjectName, result.Summary, commits, files, loadMessageConfig()); err != nil {
+		if err := slackClient.PostSummary(cfg.ProjectName, result.Summary, commits, files, messageConfig); err != nil {
 			log.Fatalf("post to slack: %v", err)
 		}
 
@@ -91,27 +96,4 @@ func LoadEnv() {
 	if err := godotenv.Load(); err == nil {
 		log.Println("Loaded .env file")
 	}
-}
-
-func loadMessageConfig() slack.MessageConfig {
-	cfg := slack.DefaultConfig()
-
-	if v := os.Getenv("SHOW_CHANGED_FILES"); v == "false" {
-		cfg.ShowChangedFiles = false
-	}
-	if v := os.Getenv("SHOW_RAW_COMMITS"); v == "false" {
-		cfg.ShowRawCommits = false
-	}
-	if v := os.Getenv("MAX_FILES"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
-			cfg.MaxFiles = n
-		}
-	}
-	if v := os.Getenv("MAX_COMMITS"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
-			cfg.MaxCommits = n
-		}
-	}
-
-	return cfg
 }
