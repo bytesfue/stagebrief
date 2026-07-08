@@ -41,7 +41,13 @@ func (c *Client) GetCommitsBetween(projectID, fromSHA, toSHA string) ([]Commit, 
 }
 
 func (c *Client) GetChangedFiles(projectID, fromSHA, toSHA string) ([]FileDiff, error) {
-	path := fmt.Sprintf("/projects/%s/repository/compare?from=%s&to=%s",
+	// straight=true requests a direct diff between fromSHA and toSHA (git diff from to)
+	// rather than GitLab's default merge-base diff (git diff from...to). We want the
+	// literal file-tree delta between the exact two deployed commits — merge-base
+	// diffing recalculates against the common ancestor, which only matches fromSHA in
+	// the simple fast-forward case and can mis-report changes if the branch was
+	// rebased or force-pushed between deploys.
+	path := fmt.Sprintf("/projects/%s/repository/compare?from=%s&to=%s&straight=true",
 		url.QueryEscape(projectID),
 		url.QueryEscape(fromSHA),
 		url.QueryEscape(toSHA),
