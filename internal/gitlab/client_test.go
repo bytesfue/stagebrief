@@ -45,6 +45,34 @@ func TestClientGet_DecodeErrorOnMalformedJSON(t *testing.T) {
 	}
 }
 
+func TestClientGet_RetriesTransientFailureThenSucceeds(t *testing.T) {
+	var count int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		count++
+		if count <= 2 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"value": "ok"}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-token", server.URL)
+	client.retry.BaseDelay = 0
+
+	var out map[string]any
+	if err := client.Get("/projects/123", &out); err != nil {
+		t.Fatalf("expected success after transient failures, got: %v", err)
+	}
+	if count != 3 {
+		t.Errorf("expected 3 attempts (2 x 503 + success), got %d", count)
+	}
+	if out["value"] != "ok" {
+		t.Errorf("expected decoded body from the successful attempt, got %+v", out)
+	}
+}
+
 func TestClientGet_SetsAuthHeader(t *testing.T) {
 	var gotToken string
 

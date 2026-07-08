@@ -11,7 +11,11 @@ import (
 )
 
 func newTestClient(baseURL string) *Client {
-	return NewClient("test-key", defaultModel, WithBaseURL(baseURL))
+	c := NewClient("test-key", defaultModel, WithBaseURL(baseURL))
+	// Zero the backoff so retry-triggering tests (5xx) don't sleep for real.
+	c.retry.BaseDelay = 0
+	c.retry.MaxDelay = 0
+	return c
 }
 
 func TestChatCompletion_RateLimitedWithoutErrorBody(t *testing.T) {
@@ -44,6 +48,33 @@ func TestChatCompletion_RateLimitedWithErrorBody(t *testing.T) {
 	}
 	if err.Error() != "llm quota exceeded: quota exceeded for this key" {
 		t.Fatalf("expected error message to include API message, got %q", err.Error())
+	}
+}
+
+func TestChatCompletion_RetriesServerErrorThenSucceeds(t *testing.T) {
+	var count int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		count++
+		if count == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"choices": [{"message": {"role": "assistant", "content": "recovered"}}]}`))
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL)
+
+	result, err := client.ChatCompletion("system", "user")
+	if err != nil {
+		t.Fatalf("expected success after a transient 500, got: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 attempts (500 then 200), got %d", count)
+	}
+	if result.Summary != "recovered" {
+		t.Errorf("expected summary from the successful retry, got %q", result.Summary)
 	}
 }
 

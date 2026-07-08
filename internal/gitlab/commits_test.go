@@ -94,7 +94,9 @@ func TestGetChangedFiles_PropagatesHTTPError(t *testing.T) {
 	}))
 	defer server.Close()
 
+	// 500 is retryable — zero the backoff so the retries don't sleep for real.
 	client := NewClient("test-token", server.URL)
+	client.retry.BaseDelay = 0
 
 	_, err := client.GetChangedFiles("123", "aaa111", "bbb222")
 	if err == nil {

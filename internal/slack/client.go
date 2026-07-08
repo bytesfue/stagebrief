@@ -3,6 +3,8 @@ package slack
 import (
 	"net/http"
 	"time"
+
+	"github.com/bytesfue/stagingbrief/internal/httpretry"
 )
 
 const defaultAPIURL = "https://slack.com/api/chat.postMessage"
@@ -12,6 +14,7 @@ type Client struct {
 	channel    string
 	baseURL    string
 	httpClient *http.Client
+	retry      httpretry.Policy
 }
 
 type apiResponse struct {
@@ -39,6 +42,7 @@ func NewClient(botToken, channel string, opts ...Option) *Client {
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		retry: httpretry.DefaultPolicy(),
 	}
 
 	for _, opt := range opts {

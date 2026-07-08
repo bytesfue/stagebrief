@@ -65,11 +65,37 @@ func TestPostSummary_NetworkErrorWhenServerUnreachable(t *testing.T) {
 	unreachableURL := server.URL
 	server.Close() // close immediately so the URL is unreachable
 
+	// A network error is retryable — zero the backoff so it doesn't sleep.
 	client := NewClient("test-token", "C123", WithBaseURL(unreachableURL))
+	client.retry.BaseDelay = 0
 
 	err := client.PostSummary("demo-project", "summary", nil, nil, DefaultConfig())
 	if err == nil {
 		t.Fatal("expected network error when server is unreachable, got nil")
+	}
+}
+
+func TestPostSummary_RetriesServerErrorThenSucceeds(t *testing.T) {
+	var count int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		count++
+		if count == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"ok": true}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-token", "C123", WithBaseURL(server.URL))
+	client.retry.BaseDelay = 0
+
+	if err := client.PostSummary("demo-project", "summary", nil, nil, DefaultConfig()); err != nil {
+		t.Fatalf("expected success after a transient 503, got: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 attempts (503 then 200), got %d", count)
 	}
 }
 

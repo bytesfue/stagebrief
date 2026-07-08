@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/bytesfue/stagingbrief/internal/httpretry"
 )
 
 // maxPages caps how many pages a paginated GitLab list endpoint will be
@@ -19,6 +21,7 @@ type Client struct {
 	token      string
 	baseURL    string
 	httpClient *http.Client
+	retry      httpretry.Policy
 }
 
 func NewClient(token, baseUrl string) *Client {
@@ -28,6 +31,7 @@ func NewClient(token, baseUrl string) *Client {
 		httpClient: &http.Client{
 			Timeout: time.Second * 15,
 		},
+		retry: httpretry.DefaultPolicy(),
 	}
 }
 
@@ -40,13 +44,14 @@ func (c *Client) Get(path string, response any) error {
 // X-Next-Page response header, which GitLab list endpoints use to signal
 // pagination continuation ("" means there is no further page).
 func (c *Client) getPage(path string, response any) (nextPage string, err error) {
-	req, err := http.NewRequest(http.MethodGet, c.baseURL+path, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("PRIVATE-TOKEN", c.token)
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.retry.Do(c.httpClient, func() (*http.Request, error) {
+		req, err := http.NewRequest(http.MethodGet, c.baseURL+path, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("PRIVATE-TOKEN", c.token)
+		return req, nil
+	})
 	if err != nil {
 		return "", fmt.Errorf("failed to execute request: %w", err)
 	}

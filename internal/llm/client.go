@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/bytesfue/stagingbrief/internal/httpretry"
 )
 
 const defaultModel = "gpt-4o-mini"
@@ -18,6 +20,7 @@ type Client struct {
 	model      string
 	baseURL    string
 	httpClient *http.Client
+	retry      httpretry.Policy
 }
 
 // Option configures optional Client behaviour, e.g. for tests.
@@ -44,6 +47,7 @@ func NewClient(apiKey, model string, opts ...Option) *Client {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		retry: httpretry.DefaultPolicy(),
 	}
 
 	for _, opt := range opts {
@@ -111,14 +115,15 @@ func (c *Client) ChatCompletion(systemPrompt, userPrompt string) (Result, error)
 		return Result{}, fmt.Errorf("marshal request: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(body))
-	if err != nil {
-		return Result{}, fmt.Errorf("build request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.retry.Do(c.httpClient, func() (*http.Request, error) {
+		req, err := http.NewRequest(http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(body))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+		req.Header.Set("Content-Type", "application/json")
+		return req, nil
+	})
 	if err != nil {
 		return Result{}, fmt.Errorf("do request: %w", err)
 	}

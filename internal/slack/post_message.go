@@ -69,14 +69,15 @@ func (c *Client) PostSummary(
 		return fmt.Errorf("marshal payload: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, c.baseURL, bytes.NewReader(body))
-	if err != nil {
-		return fmt.Errorf("build request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.botToken)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.retry.Do(c.httpClient, func() (*http.Request, error) {
+		req, err := http.NewRequest(http.MethodPost, c.baseURL, bytes.NewReader(body))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Authorization", "Bearer "+c.botToken)
+		req.Header.Set("Content-Type", "application/json")
+		return req, nil
+	})
 	if err != nil {
 		return fmt.Errorf("post to slack: %w", err)
 	}
