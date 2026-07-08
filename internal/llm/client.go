@@ -116,8 +116,11 @@ func (c *Client) ChatCompletion(systemPrompt, userPrompt string) (Result, error)
 		return Result{}, fmt.Errorf("decode response: %w", err)
 	}
 
-	if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == 429 {
-		return Result{}, fmt.Errorf("%w: %s", ErrQuotaExceeded, chatResp.Error.Message)
+	if resp.StatusCode == http.StatusTooManyRequests {
+		if chatResp.Error != nil {
+			return Result{}, fmt.Errorf("%w: %s", ErrQuotaExceeded, chatResp.Error.Message)
+		}
+		return Result{}, ErrQuotaExceeded
 	}
 
 	if resp.StatusCode != http.StatusOK {
