@@ -1,0 +1,28 @@
+# .worktreeinclude — gantry copies/clones untracked paths matching these
+# patterns into every new worktree it creates. A fresh `git worktree add`
+# checks out tracked files only, so anything gitignored — env files,
+# installed dependencies — would otherwise be missing from a new workspace.
+#
+# Syntax is real .gitignore syntax (matched via the `ignore` crate, the same
+# engine ripgrep uses): patterns, `!` negation, `#` comments.
+#
+# Two mechanisms, picked by what a pattern matches:
+#   - A pattern matching a FILE is copied (bytes only, never symlinked — a
+#     symlinked .env would leak one workspace's edits into every other,
+#     defeating the isolation worktrees exist for).
+#   - A pattern matching a DIRECTORY is cloned whole via APFS clonefile
+#     (copy-on-write: near-instant, ~zero space until the two trees
+#     diverge). A non-APFS volume silently skips the directory rather than
+#     failing worktree creation.
+#
+# A path that's already tracked by git is skipped either way — the checkout
+# already placed it, and copying again could overwrite it with a stale copy
+# from main's current working tree.
+#
+# Uncomment whatever this project actually needs:
+
+# .env
+# .env.local
+# node_modules/
+# target/
+# .venv/
