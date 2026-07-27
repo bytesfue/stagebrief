@@ -12,7 +12,7 @@ import (
 	"github.com/bytesfue/stagingbrief/internal/httpretry"
 )
 
-const defaultModel = "gpt-4o-mini"
+const defaultModel = "gpt-5-mini"
 const defaultBaseURL = "https://api.openai.com/v1"
 
 type Client struct {
@@ -91,13 +91,13 @@ type Result struct {
 }
 
 // Pricing per 1000 tokens in USD — verify at https://openai.com/pricing
-// Last updated: June 2026
+// Last updated: July 2026
 var modelPricing = map[string]struct {
 	InputPer1k  float64
 	OutputPer1k float64
 }{
-	"gpt-4o-mini": {InputPer1k: 0.000150, OutputPer1k: 0.000600},
-	"gpt-4o":      {InputPer1k: 0.002500, OutputPer1k: 0.010000},
+	"gpt-5-mini": {InputPer1k: 0.000250, OutputPer1k: 0.002000},
+	"gpt-5":      {InputPer1k: 0.001250, OutputPer1k: 0.010000},
 }
 
 func (c *Client) ChatCompletion(systemPrompt, userPrompt string) (Result, error) {

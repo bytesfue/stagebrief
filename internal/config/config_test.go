@@ -165,7 +165,7 @@ func TestLoad_DefaultsForOptionalVars(t *testing.T) {
 	if cfg.GitLabAPIURL != "https://gitlab.com/api/v4" {
 		t.Errorf("GitLabAPIURL = %q, want default", cfg.GitLabAPIURL)
 	}
-	if cfg.OpenAIModel != "gpt-4o-mini" {
+	if cfg.OpenAIModel != "gpt-5-mini" {
 		t.Errorf("OpenAIModel = %q, want default", cfg.OpenAIModel)
 	}
 	if cfg.ProjectName != cfg.GitLabProjectID {
@@ -193,7 +193,7 @@ func TestLoad_OverridesForOptionalVars(t *testing.T) {
 	clearOptionalEnvVars(t)
 
 	t.Setenv("CI_API_V4_URL", "https://gitlab.example.com/api/v4")
-	t.Setenv("OPENAI_MODEL", "gpt-4o")
+	t.Setenv("OPENAI_MODEL", "gpt-5")
 	t.Setenv("GITLAB_PROJECT_NAME", "My Project")
 	t.Setenv("SHOW_CHANGED_FILES", "false")
 	t.Setenv("SHOW_RAW_COMMITS", "false")
@@ -209,7 +209,7 @@ func TestLoad_OverridesForOptionalVars(t *testing.T) {
 	if cfg.GitLabAPIURL != "https://gitlab.example.com/api/v4" {
 		t.Errorf("GitLabAPIURL = %q", cfg.GitLabAPIURL)
 	}
-	if cfg.OpenAIModel != "gpt-4o" {
+	if cfg.OpenAIModel != "gpt-5" {
 		t.Errorf("OpenAIModel = %q", cfg.OpenAIModel)
 	}
 	if cfg.ProjectName != "My Project" {

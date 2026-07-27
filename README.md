@@ -94,7 +94,7 @@ All configuration is via environment variables passed through GitLab CI.
 | Variable | Default | Description |
 |---|---|---|
 | `GITLAB_PROJECT_NAME` | project ID | Display name shown in the Slack message header |
-| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model to use |
+| `OPENAI_MODEL` | `gpt-5-mini` | OpenAI model to use |
 | `SHOW_CHANGED_FILES` | `true` | Show changed files section in Slack message |
 | `SHOW_RAW_COMMITS` | `true` | Show raw commits section in Slack message |
 | `MAX_FILES` | `10` | Maximum changed files to show (0 = no limit) |

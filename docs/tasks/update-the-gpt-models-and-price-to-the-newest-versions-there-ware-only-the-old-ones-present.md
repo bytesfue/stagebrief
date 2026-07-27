@@ -24,10 +24,18 @@ None.
 
 ## User decisions
 
-<TODO: which specific model(s) should become the new default — needs a
-human decision once current OpenAI pricing/model names are confirmed,
-since the agent doing this task cannot browse OpenAI's live pricing page
-from local repo context alone.>
+- (2026-07-27) New default is `gpt-5-mini` (was `gpt-4o-mini`), with `gpt-5`
+  kept as the second `modelPricing` entry (was `gpt-4o`) — same two-tier
+  shape as before. `gpt-5-nano` and other newer point releases (e.g.
+  `gpt-5.4`/`gpt-5.5`) were considered and declined: third-party pricing
+  aggregators disagreed on the point-release numbers, while `gpt-5` /
+  `gpt-5-mini` / `gpt-5-nano` figures were consistent across sources.
+  Pricing used (per 1M tokens, converted to per-1k in the table):
+  `gpt-5-mini` $0.25 in / $2.00 out, `gpt-5` $1.25 in / $10.00 out.
+  `openai.com/api/pricing` itself returned HTTP 403 to automated fetches,
+  so these were cross-checked across two independent secondary sources
+  instead of the primary page — worth a manual spot-check against the
+  live page if precision matters.
 
 ## Reconciliations
 

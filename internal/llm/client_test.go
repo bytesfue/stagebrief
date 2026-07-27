@@ -202,14 +202,14 @@ func TestEstimateCost(t *testing.T) {
 	}{
 		{
 			name:             "known model with usage",
-			model:            "gpt-4o-mini",
+			model:            "gpt-5-mini",
 			promptTokens:     1000,
 			completionTokens: 1000,
-			want:             0.000150 + 0.000600,
+			want:             0.000250 + 0.002000,
 		},
 		{
 			name:             "known model, zero tokens",
-			model:            "gpt-4o-mini",
+			model:            "gpt-5-mini",
 			promptTokens:     0,
 			completionTokens: 0,
 			want:             0,
@@ -222,11 +222,11 @@ func TestEstimateCost(t *testing.T) {
 			want:             0,
 		},
 		{
-			name:             "gpt-4o pricing",
-			model:            "gpt-4o",
+			name:             "gpt-5 pricing",
+			model:            "gpt-5",
 			promptTokens:     2000,
 			completionTokens: 500,
-			want:             (2000.0/1000)*0.002500 + (500.0/1000)*0.010000,
+			want:             (2000.0/1000)*0.001250 + (500.0/1000)*0.010000,
 		},
 	}
 

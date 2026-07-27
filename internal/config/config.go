@@ -92,7 +92,7 @@ func Load() (*Config, error) {
 
 	cfg.OpenAIModel = os.Getenv("OPENAI_MODEL")
 	if cfg.OpenAIModel == "" {
-		cfg.OpenAIModel = "gpt-4o-mini"
+		cfg.OpenAIModel = "gpt-5-mini"
 	}
 
 	cfg.ProjectName = os.Getenv("GITLAB_PROJECT_NAME")
