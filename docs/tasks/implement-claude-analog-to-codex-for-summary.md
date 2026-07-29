@@ -5,15 +5,18 @@
 `internal/llm/client.go` only speaks OpenAI's Chat Completions API. Add an
 Anthropic Claude client that plugs into the same summarisation path
 (`internal/llm/summarise.go`), so `cmd/notify` can generate the staging
-deployment summary using either provider, selectable per-project via a CI
-environment variable. This gives users a fallback when they'd rather not
-hold an OpenAI key, or want to compare summary quality/cost between
-providers, without forking the tool.
+deployment summary using one provider or the other — never both at once —
+picked per-project via the `LLM_PROVIDER` GitLab CI variable. This gives
+users a choice when they'd rather not hold an OpenAI key, or want to
+compare summary quality/cost between providers, without forking the tool.
 
 ## Out of scope / non-goals
 
 - Supporting more than two providers (OpenAI, Claude) — no generic
   multi-provider plugin system, just one additional concrete client.
+- Running both clients concurrently, or constructing both in the same
+  process — exactly one client is active per GitLab CI run, chosen once at
+  config load from the `LLM_PROVIDER` CI variable, never both at once.
 - Runtime/automatic provider fallback (e.g. retry on Claude if OpenAI's
   quota is exceeded) — the provider is a fixed choice per CI run via
   config, not a failover chain.
@@ -39,12 +42,16 @@ authoritative source, not guessed from training data. See
 `docs/tasks/update-the-gpt-models-and-price-to-the-newest-versions-there-ware-only-the-old-ones-present.md`
 for the same caution applied to the OpenAI side.>
 
-<TODO: exact name/values for the provider-switch env var — this spec
-assumes `LLM_PROVIDER` with values `openai` (default, preserves current
-behaviour with no config changes required) and `claude`, plus a new
-`ANTHROPIC_API_KEY` (and optionally `ANTHROPIC_MODEL`) — confirm naming
-before implementing, since it's a public CI-facing interface documented in
-README.>
+- (2026-07-29) Provider is a GitLab CI variable, `LLM_PROVIDER`, with
+  values `openai` (default) and `claude`. Only one client is ever active
+  per CI run — the project's GitLab CI/CD variables settle it once for
+  that run, no runtime switching or dual clients.
+- (2026-07-29) Must stay backwards compatible where possible: with
+  `LLM_PROVIDER` unset, an existing project's `.gitlab-ci.yml` and CI/CD
+  variables keep working unmodified — same required vars
+  (`OPENAI_API_KEY`), same default model, same client behaviour as today.
+  `ANTHROPIC_API_KEY` (and optionally `ANTHROPIC_MODEL`) are net-new,
+  required only when `LLM_PROVIDER=claude`.
 
 ## Reconciliations
 
@@ -79,13 +86,16 @@ README.>
   verbatim.
 - `internal/config/config.go` currently treats `OPENAI_API_KEY` as always
   required (`Load()` adds it to `missing` unconditionally at
-  config.go:68-71). Once the provider is selectable, only the key for the
-  *selected* provider should be required — the other provider's key/model
-  vars become conditionally optional.
+  config.go:68-71). With `LLM_PROVIDER` defaulting to `openai`, an
+  unmodified project keeps requiring exactly `OPENAI_API_KEY` as today
+  (backwards compatible); `LLM_PROVIDER=claude` instead requires
+  `ANTHROPIC_API_KEY` and makes `OPENAI_API_KEY` optional. Only one key is
+  ever required per run, matching the one-active-client constraint.
 - `cmd/notify/main.go:47` constructs the LLM client directly
   (`llm.NewClient(cfg.OpenAIAPIKey, cfg.OpenAIModel)`); this becomes a
-  provider switch that constructs either client and passes it to
-  `llm.Summarise` through the shared interface.
+  one-time `switch cfg.LLMProvider` at startup that constructs exactly one
+  client — OpenAI or Claude — and passes it to `llm.Summarise` through the
+  shared interface.
 - README's Quick start CI snippet (`README.md:41-56`) and Configuration
   tables (`README.md:82-101`) document `OPENAI_API_KEY`/`OPENAI_MODEL` as
   the only LLM config — these need new rows/notes for the provider switch
@@ -157,9 +167,12 @@ request shape, cost estimation) and satisfies `ChatCompleter`.
 
 - [ ] With `LLM_PROVIDER` unset (or `openai`), behaviour is unchanged from
       today — same required vars, same default model, same client used.
+      An existing project's `.gitlab-ci.yml`/CI variables need no changes.
 - [ ] With `LLM_PROVIDER=claude` and `ANTHROPIC_API_KEY` set,
       `cmd/notify` generates the Slack summary via the Claude client
       instead of OpenAI, with no `OPENAI_API_KEY` required.
+- [ ] At no point does `cmd/notify` construct or call both clients in the
+      same run — exactly one `ChatCompleter` is built, per `LLM_PROVIDER`.
 - [ ] Both clients satisfy the same `ChatCompleter` interface and produce
       a `Result` (summary text, token counts, estimated cost) in the same
       shape, so `cmd/notify` and `slack.PostSummary` need no
