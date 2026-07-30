@@ -21,7 +21,7 @@ const anthropicVersion = "2023-06-01"
 const claudeMaxTokens = 1024
 
 // ClaudeClient talks to Anthropic's Messages API. It satisfies the same
-// ChatCompleter interface as the OpenAI Client so callers can use either
+// ChatCompleter interface as OpenAIClient so callers can use either
 // provider interchangeably.
 type ClaudeClient struct {
 	apiKey     string

@@ -53,7 +53,7 @@ func main() {
 		llmClient = llm.NewClaudeClient(cfg.AnthropicAPIKey, cfg.AnthropicModel)
 		llmModel = cfg.AnthropicModel
 	default:
-		llmClient = llm.NewClient(cfg.OpenAIAPIKey, cfg.OpenAIModel)
+		llmClient = llm.NewOpenAIClient(cfg.OpenAIAPIKey, cfg.OpenAIModel)
 		llmModel = cfg.OpenAIModel
 	}
 

@@ -12,10 +12,13 @@ import (
 	"github.com/bytesfue/stagingbrief/internal/httpretry"
 )
 
-const defaultModel = "gpt-5-mini"
-const defaultBaseURL = "https://api.openai.com/v1"
+const defaultOpenAIModel = "gpt-5-mini"
+const defaultOpenAIBaseURL = "https://api.openai.com/v1"
 
-type Client struct {
+// OpenAIClient talks to OpenAI's Chat Completions API. It satisfies the same
+// ChatCompleter interface as ClaudeClient so callers can use either
+// provider interchangeably.
+type OpenAIClient struct {
 	apiKey     string
 	model      string
 	baseURL    string
@@ -23,27 +26,27 @@ type Client struct {
 	retry      httpretry.Policy
 }
 
-// Option configures optional Client behaviour, e.g. for tests.
-type Option func(*Client)
+// OpenAIOption configures optional OpenAIClient behaviour, e.g. for tests.
+type OpenAIOption func(*OpenAIClient)
 
-// WithBaseURL overrides the OpenAI API base URL. Intended for tests that
-// point the client at a local httptest server; production callers should
-// leave this unset to use the default OpenAI endpoint.
-func WithBaseURL(baseURL string) Option {
-	return func(c *Client) {
+// WithOpenAIBaseURL overrides the OpenAI API base URL. Intended for tests
+// that point the client at a local httptest server; production callers
+// should leave this unset to use the default OpenAI endpoint.
+func WithOpenAIBaseURL(baseURL string) OpenAIOption {
+	return func(c *OpenAIClient) {
 		c.baseURL = baseURL
 	}
 }
 
-func NewClient(apiKey, model string, opts ...Option) *Client {
+func NewOpenAIClient(apiKey, model string, opts ...OpenAIOption) *OpenAIClient {
 	if model == "" {
-		model = defaultModel
+		model = defaultOpenAIModel
 	}
 
-	c := &Client{
+	c := &OpenAIClient{
 		apiKey:  apiKey,
 		model:   model,
-		baseURL: defaultBaseURL,
+		baseURL: defaultOpenAIBaseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -57,20 +60,20 @@ func NewClient(apiKey, model string, opts ...Option) *Client {
 	return c
 }
 
-type chatMessage struct {
+type openAIMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
 
-type chatRequest struct {
-	Model       string        `json:"model"`
-	Messages    []chatMessage `json:"messages"`
-	Temperature float64       `json:"temperature"`
+type openAIRequest struct {
+	Model       string          `json:"model"`
+	Messages    []openAIMessage `json:"messages"`
+	Temperature float64         `json:"temperature"`
 }
 
-type chatResponse struct {
+type openAIResponse struct {
 	Choices []struct {
-		Message chatMessage `json:"message"`
+		Message openAIMessage `json:"message"`
 	} `json:"choices"`
 	Usage struct {
 		PromptTokens     int `json:"prompt_tokens"`
@@ -92,7 +95,7 @@ type Result struct {
 
 // Pricing per 1000 tokens in USD — verify at https://openai.com/pricing
 // Last updated: July 2026
-var modelPricing = map[string]struct {
+var openAIModelPricing = map[string]struct {
 	InputPer1k  float64
 	OutputPer1k float64
 }{
@@ -100,10 +103,10 @@ var modelPricing = map[string]struct {
 	"gpt-5":      {InputPer1k: 0.001250, OutputPer1k: 0.010000},
 }
 
-func (c *Client) ChatCompletion(systemPrompt, userPrompt string) (Result, error) {
-	reqBody := chatRequest{
+func (c *OpenAIClient) ChatCompletion(systemPrompt, userPrompt string) (Result, error) {
+	reqBody := openAIRequest{
 		Model: c.model,
-		Messages: []chatMessage{
+		Messages: []openAIMessage{
 			{Role: "system", Content: systemPrompt},
 			{Role: "user", Content: userPrompt},
 		},
@@ -134,42 +137,42 @@ func (c *Client) ChatCompletion(systemPrompt, userPrompt string) (Result, error)
 		return Result{}, fmt.Errorf("read response: %w", err)
 	}
 
-	var chatResp chatResponse
-	if err := json.Unmarshal(respBody, &chatResp); err != nil {
+	var openAIResp openAIResponse
+	if err := json.Unmarshal(respBody, &openAIResp); err != nil {
 		return Result{}, fmt.Errorf("decode response: %w", err)
 	}
 
 	if resp.StatusCode == http.StatusTooManyRequests {
-		if chatResp.Error != nil {
-			return Result{}, fmt.Errorf("%w: %s", ErrQuotaExceeded, chatResp.Error.Message)
+		if openAIResp.Error != nil {
+			return Result{}, fmt.Errorf("%w: %s", ErrQuotaExceeded, openAIResp.Error.Message)
 		}
 		return Result{}, ErrQuotaExceeded
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		if chatResp.Error != nil {
-			return Result{}, fmt.Errorf("%w: %s", ErrAPIError, chatResp.Error.Message)
+		if openAIResp.Error != nil {
+			return Result{}, fmt.Errorf("%w: %s", ErrAPIError, openAIResp.Error.Message)
 		}
 		return Result{}, fmt.Errorf("%w: status %d", ErrAPIError, resp.StatusCode)
 	}
 
-	if len(chatResp.Choices) == 0 {
+	if len(openAIResp.Choices) == 0 {
 		return Result{}, fmt.Errorf("openai API returned no choices")
 	}
 
-	cost := estimateCost(c.model, chatResp.Usage.PromptTokens, chatResp.Usage.CompletionTokens)
+	cost := estimateOpenAICost(c.model, openAIResp.Usage.PromptTokens, openAIResp.Usage.CompletionTokens)
 
 	return Result{
-		Summary:          strings.TrimSpace(chatResp.Choices[0].Message.Content),
-		PromptTokens:     chatResp.Usage.PromptTokens,
-		CompletionTokens: chatResp.Usage.CompletionTokens,
-		TotalTokens:      chatResp.Usage.TotalTokens,
+		Summary:          strings.TrimSpace(openAIResp.Choices[0].Message.Content),
+		PromptTokens:     openAIResp.Usage.PromptTokens,
+		CompletionTokens: openAIResp.Usage.CompletionTokens,
+		TotalTokens:      openAIResp.Usage.TotalTokens,
 		EstimatedCostUSD: cost,
 	}, nil
 }
 
-func estimateCost(model string, promptTokens, completionTokens int) float64 {
-	pricing, ok := modelPricing[model]
+func estimateOpenAICost(model string, promptTokens, completionTokens int) float64 {
+	pricing, ok := openAIModelPricing[model]
 	if !ok {
 		return 0
 	}

@@ -10,22 +10,22 @@ import (
 	"testing"
 )
 
-func newTestClient(baseURL string) *Client {
-	c := NewClient("test-key", defaultModel, WithBaseURL(baseURL))
+func newTestOpenAIClient(baseURL string) *OpenAIClient {
+	c := NewOpenAIClient("test-key", defaultOpenAIModel, WithOpenAIBaseURL(baseURL))
 	// Zero the backoff so retry-triggering tests (5xx) don't sleep for real.
 	c.retry.BaseDelay = 0
 	c.retry.MaxDelay = 0
 	return c
 }
 
-func TestChatCompletion_RateLimitedWithoutErrorBody(t *testing.T) {
+func TestOpenAIChatCompletion_RateLimitedWithoutErrorBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusTooManyRequests)
 		w.Write([]byte(`{}`))
 	}))
 	defer server.Close()
 
-	client := newTestClient(server.URL)
+	client := newTestOpenAIClient(server.URL)
 
 	_, err := client.ChatCompletion("system", "user")
 	if !errors.Is(err, ErrQuotaExceeded) {
@@ -33,14 +33,14 @@ func TestChatCompletion_RateLimitedWithoutErrorBody(t *testing.T) {
 	}
 }
 
-func TestChatCompletion_RateLimitedWithErrorBody(t *testing.T) {
+func TestOpenAIChatCompletion_RateLimitedWithErrorBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusTooManyRequests)
 		w.Write([]byte(`{"error": {"message": "quota exceeded for this key"}}`))
 	}))
 	defer server.Close()
 
-	client := newTestClient(server.URL)
+	client := newTestOpenAIClient(server.URL)
 
 	_, err := client.ChatCompletion("system", "user")
 	if !errors.Is(err, ErrQuotaExceeded) {
@@ -51,7 +51,7 @@ func TestChatCompletion_RateLimitedWithErrorBody(t *testing.T) {
 	}
 }
 
-func TestChatCompletion_RetriesServerErrorThenSucceeds(t *testing.T) {
+func TestOpenAIChatCompletion_RetriesServerErrorThenSucceeds(t *testing.T) {
 	var count int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		count++
@@ -64,7 +64,7 @@ func TestChatCompletion_RetriesServerErrorThenSucceeds(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newTestClient(server.URL)
+	client := newTestOpenAIClient(server.URL)
 
 	result, err := client.ChatCompletion("system", "user")
 	if err != nil {
@@ -78,7 +78,7 @@ func TestChatCompletion_RetriesServerErrorThenSucceeds(t *testing.T) {
 	}
 }
 
-func TestChatCompletion_HappyPath(t *testing.T) {
+func TestOpenAIChatCompletion_HappyPath(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{
@@ -88,7 +88,7 @@ func TestChatCompletion_HappyPath(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newTestClient(server.URL)
+	client := newTestOpenAIClient(server.URL)
 
 	result, err := client.ChatCompletion("system prompt", "user prompt")
 	if err != nil {
@@ -106,14 +106,14 @@ func TestChatCompletion_HappyPath(t *testing.T) {
 	}
 }
 
-func TestChatCompletion_NoChoicesReturnsError(t *testing.T) {
+func TestOpenAIChatCompletion_NoChoicesReturnsError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"choices": [], "usage": {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10}}`))
 	}))
 	defer server.Close()
 
-	client := newTestClient(server.URL)
+	client := newTestOpenAIClient(server.URL)
 
 	_, err := client.ChatCompletion("system", "user")
 	if err == nil {
@@ -121,14 +121,14 @@ func TestChatCompletion_NoChoicesReturnsError(t *testing.T) {
 	}
 }
 
-func TestChatCompletion_GenericAPIErrorWithBody(t *testing.T) {
+func TestOpenAIChatCompletion_GenericAPIErrorWithBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error": {"message": "internal server error"}}`))
 	}))
 	defer server.Close()
 
-	client := newTestClient(server.URL)
+	client := newTestOpenAIClient(server.URL)
 
 	_, err := client.ChatCompletion("system", "user")
 	if !errors.Is(err, ErrAPIError) {
@@ -139,14 +139,14 @@ func TestChatCompletion_GenericAPIErrorWithBody(t *testing.T) {
 	}
 }
 
-func TestChatCompletion_GenericAPIErrorWithoutBody(t *testing.T) {
+func TestOpenAIChatCompletion_GenericAPIErrorWithoutBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadGateway)
 		w.Write([]byte(`{}`))
 	}))
 	defer server.Close()
 
-	client := newTestClient(server.URL)
+	client := newTestOpenAIClient(server.URL)
 
 	_, err := client.ChatCompletion("system", "user")
 	if !errors.Is(err, ErrAPIError) {
@@ -157,8 +157,8 @@ func TestChatCompletion_GenericAPIErrorWithoutBody(t *testing.T) {
 	}
 }
 
-func TestChatCompletion_SendsExpectedRequest(t *testing.T) {
-	var gotBody chatRequest
+func TestOpenAIChatCompletion_SendsExpectedRequest(t *testing.T) {
+	var gotBody openAIRequest
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if got := r.Header.Get("Authorization"); got != "Bearer test-key" {
@@ -172,14 +172,14 @@ func TestChatCompletion_SendsExpectedRequest(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := newTestClient(server.URL)
+	client := newTestOpenAIClient(server.URL)
 
 	if _, err := client.ChatCompletion("system prompt text", "user prompt text"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if gotBody.Model != defaultModel {
-		t.Errorf("expected model %q, got %q", defaultModel, gotBody.Model)
+	if gotBody.Model != defaultOpenAIModel {
+		t.Errorf("expected model %q, got %q", defaultOpenAIModel, gotBody.Model)
 	}
 	if len(gotBody.Messages) != 2 {
 		t.Fatalf("expected 2 messages, got %d", len(gotBody.Messages))
@@ -192,7 +192,7 @@ func TestChatCompletion_SendsExpectedRequest(t *testing.T) {
 	}
 }
 
-func TestEstimateCost(t *testing.T) {
+func TestEstimateOpenAICost(t *testing.T) {
 	tests := []struct {
 		name             string
 		model            string
@@ -232,10 +232,13 @@ func TestEstimateCost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := estimateCost(tt.model, tt.promptTokens, tt.completionTokens)
+			got := estimateOpenAICost(tt.model, tt.promptTokens, tt.completionTokens)
 			if math.Abs(got-tt.want) > 1e-9 {
-				t.Errorf("estimateCost(%q, %d, %d) = %v, want %v", tt.model, tt.promptTokens, tt.completionTokens, got, tt.want)
+				t.Errorf("estimateOpenAICost(%q, %d, %d) = %v, want %v", tt.model, tt.promptTokens, tt.completionTokens, got, tt.want)
 			}
 		})
 	}
 }
+
+// Compile-time check that OpenAIClient satisfies the ChatCompleter interface.
+var _ ChatCompleter = (*OpenAIClient)(nil)
