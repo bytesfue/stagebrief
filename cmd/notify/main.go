@@ -44,8 +44,18 @@ func main() {
 	}
 
 	gitlabClient := gitlab.NewClient(cfg.GitLabToken, cfg.GitLabAPIURL)
-	llmClient := llm.NewClient(cfg.OpenAIAPIKey, cfg.OpenAIModel)
 	slackClient := slack.NewClient(cfg.SlackBotToken, cfg.SlackChannel)
+
+	var llmClient llm.ChatCompleter
+	var llmModel string
+	switch cfg.LLMProvider {
+	case "claude":
+		llmClient = llm.NewClaudeClient(cfg.AnthropicAPIKey, cfg.AnthropicModel)
+		llmModel = cfg.AnthropicModel
+	default:
+		llmClient = llm.NewClient(cfg.OpenAIAPIKey, cfg.OpenAIModel)
+		llmModel = cfg.OpenAIModel
+	}
 
 	lastSuccessfulPipelineSHA, err := gitlabClient.GetLastSuccessfulPipelineSHA(cfg.GitLabProjectID, cfg.CommitBranch, cfg.CommitSHA)
 	if err != nil {
@@ -104,8 +114,9 @@ func main() {
 		}
 	}
 
-	log.Printf("LLM usage — model: %s | prompt: %d tokens | completion: %d tokens | total: %d tokens | estimated cost: $%.6f",
-		cfg.OpenAIModel,
+	log.Printf("LLM usage — provider: %s | model: %s | prompt: %d tokens | completion: %d tokens | total: %d tokens | estimated cost: $%.6f",
+		cfg.LLMProvider,
+		llmModel,
 		result.PromptTokens,
 		result.CompletionTokens,
 		result.TotalTokens,

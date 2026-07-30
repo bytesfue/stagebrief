@@ -23,7 +23,7 @@ StagingBrief fixes that with one CI stage and one Slack message.
 
 1. A deployment to your staging environment triggers the StagingBrief stage in GitLab CI
 2. StagingBrief fetches the commits and changed files since the last successful deploy
-3. An LLM summarises the changes in plain language — no jargon, no commit hashes
+3. An LLM (OpenAI or Claude — your choice) summarises the changes in plain language — no jargon, no commit hashes
 4. Your team receives a Slack message with the summary, raw commits, and changed files
 
 If there are no commits since the last deploy (e.g. a pipeline re-run with no new code),
@@ -73,6 +73,27 @@ Settings → CI/CD → Variables:
 
 That's it. The next push to your staging branch will trigger a Slack message.
 
+### Using Claude instead of OpenAI
+
+StagingBrief can generate the summary with Claude instead of OpenAI — useful if you'd
+rather not hold an OpenAI key, or want to compare summary quality/cost. Exactly one
+provider is active per pipeline run; set `LLM_PROVIDER: claude` and swap the API key
+variable in your `.gitlab-ci.yml`:
+
+```yaml
+  variables:
+    GITLAB_PROJECT_ID: $CI_PROJECT_ID
+    GITLAB_TOKEN: $STAGINGBRIEF_GITLAB_TOKEN
+    LLM_PROVIDER: claude
+    ANTHROPIC_API_KEY: $STAGINGBRIEF_ANTHROPIC_KEY
+    SLACK_BOT_TOKEN: $STAGINGBRIEF_SLACK_BOT_TOKEN
+    SLACK_CHANNEL_ID: $STAGINGBRIEF_SLACK_CHANNEL_ID
+    GITLAB_PROJECT_NAME: "Your Project Name"
+```
+
+`OPENAI_API_KEY` is not required in this mode. See Configuration below for the full
+list of provider-specific variables.
+
 ---
 
 ## Configuration
@@ -85,16 +106,22 @@ All configuration is via environment variables passed through GitLab CI.
 |---|---|
 | `GITLAB_TOKEN` | GitLab personal access token with `read_api` scope |
 | `GITLAB_PROJECT_ID` | GitLab project ID (use `$CI_PROJECT_ID`) |
-| `OPENAI_API_KEY` | OpenAI API key |
+| `OPENAI_API_KEY` | OpenAI API key — required when `LLM_PROVIDER` is `openai` (the default) |
+| `ANTHROPIC_API_KEY` | Anthropic API key — required when `LLM_PROVIDER` is `claude` |
 | `SLACK_BOT_TOKEN` | Slack bot token (`xoxb-...`) |
 | `SLACK_CHANNEL_ID` | Slack channel ID |
+
+Only the API key matching your `LLM_PROVIDER` choice is required — exactly one LLM
+provider is ever active per run, never both.
 
 ### Optional
 
 | Variable | Default | Description |
 |---|---|---|
 | `GITLAB_PROJECT_NAME` | project ID | Display name shown in the Slack message header |
-| `OPENAI_MODEL` | `gpt-5-mini` | OpenAI model to use |
+| `LLM_PROVIDER` | `openai` | LLM provider to use for the summary — `openai` or `claude` |
+| `OPENAI_MODEL` | `gpt-5-mini` | OpenAI model to use (when `LLM_PROVIDER` is `openai`) |
+| `ANTHROPIC_MODEL` | `claude-haiku-4-5` | Claude model to use (when `LLM_PROVIDER` is `claude`) |
 | `SHOW_CHANGED_FILES` | `true` | Show changed files section in Slack message |
 | `SHOW_RAW_COMMITS` | `true` | Show raw commits section in Slack message |
 | `MAX_FILES` | `10` | Maximum changed files to show (0 = no limit) |

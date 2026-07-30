@@ -18,8 +18,11 @@ type Config struct {
 	CommitBranch string
 
 	// LLM
-	OpenAIAPIKey string
-	OpenAIModel  string
+	LLMProvider     string
+	OpenAIAPIKey    string
+	OpenAIModel     string
+	AnthropicAPIKey string
+	AnthropicModel  string
 
 	// Slack
 	SlackBotToken string
@@ -65,8 +68,19 @@ func Load() (*Config, error) {
 		missing = append(missing, "CI_COMMIT_BRANCH")
 	}
 
+	cfg.LLMProvider = os.Getenv("LLM_PROVIDER")
+	if cfg.LLMProvider == "" {
+		cfg.LLMProvider = "openai"
+	}
+
 	cfg.OpenAIAPIKey = os.Getenv("OPENAI_API_KEY")
-	if cfg.OpenAIAPIKey == "" {
+	cfg.AnthropicAPIKey = os.Getenv("ANTHROPIC_API_KEY")
+
+	if cfg.LLMProvider == "claude" {
+		if cfg.AnthropicAPIKey == "" {
+			missing = append(missing, "ANTHROPIC_API_KEY")
+		}
+	} else if cfg.OpenAIAPIKey == "" {
 		missing = append(missing, "OPENAI_API_KEY")
 	}
 
@@ -93,6 +107,11 @@ func Load() (*Config, error) {
 	cfg.OpenAIModel = os.Getenv("OPENAI_MODEL")
 	if cfg.OpenAIModel == "" {
 		cfg.OpenAIModel = "gpt-5-mini"
+	}
+
+	cfg.AnthropicModel = os.Getenv("ANTHROPIC_MODEL")
+	if cfg.AnthropicModel == "" {
+		cfg.AnthropicModel = "claude-haiku-4-5"
 	}
 
 	cfg.ProjectName = os.Getenv("GITLAB_PROJECT_NAME")

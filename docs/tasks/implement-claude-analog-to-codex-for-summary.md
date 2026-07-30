@@ -150,40 +150,40 @@ request shape, cost estimation) and satisfies `ChatCompleter`.
 
 **Gate:** the Acceptance suite below.
 
-- [ ] Add `LLM_PROVIDER` (default `openai`), `ANTHROPIC_API_KEY`, and
+- [x] Add `LLM_PROVIDER` (default `openai`), `ANTHROPIC_API_KEY`, and
       `ANTHROPIC_MODEL` to `internal/config/config.go`, with only the
       selected provider's API key required (update the `missing`-vars
       logic accordingly).
-- [ ] Wire `cmd/notify/main.go` to construct the OpenAI or Claude client
+- [x] Wire `cmd/notify/main.go` to construct the OpenAI or Claude client
       based on `cfg`'s provider selection and pass it to `llm.Summarise`
       via the `ChatCompleter` interface.
-- [ ] Update the LLM-usage log line (main.go:107-113) to work for either
+- [x] Update the LLM-usage log line (main.go:107-113) to work for either
       provider (it currently logs `cfg.OpenAIModel` unconditionally).
-- [ ] Update README: Quick start snippet, required/optional variable
+- [x] Update README: Quick start snippet, required/optional variable
       tables, and any prose describing "an LLM" to reflect the provider
       choice.
-- [ ] Add/update `internal/config/config_test.go` cases for: default
+- [x] Add/update `internal/config/config_test.go` cases for: default
       provider requires only `OPENAI_API_KEY`, `LLM_PROVIDER=claude`
       requires `ANTHROPIC_API_KEY` instead, and existing required-var
       tests still pass for the default (`openai`) path.
 
 ## Acceptance
 
-- [ ] With `LLM_PROVIDER` unset (or `openai`), behaviour is unchanged from
+- [x] With `LLM_PROVIDER` unset (or `openai`), behaviour is unchanged from
       today — same required vars, same default model, same client used.
       An existing project's `.gitlab-ci.yml`/CI variables need no changes.
-- [ ] With `LLM_PROVIDER=claude` and `ANTHROPIC_API_KEY` set,
+- [x] With `LLM_PROVIDER=claude` and `ANTHROPIC_API_KEY` set,
       `cmd/notify` generates the Slack summary via the Claude client
       instead of OpenAI, with no `OPENAI_API_KEY` required.
-- [ ] At no point does `cmd/notify` construct or call both clients in the
+- [x] At no point does `cmd/notify` construct or call both clients in the
       same run — exactly one `ChatCompleter` is built, per `LLM_PROVIDER`.
-- [ ] Both clients satisfy the same `ChatCompleter` interface and produce
+- [x] Both clients satisfy the same `ChatCompleter` interface and produce
       a `Result` (summary text, token counts, estimated cost) in the same
       shape, so `cmd/notify` and `slack.PostSummary` need no
       provider-specific branching beyond client construction.
-- [ ] `go test ./...` passes, including new Claude client and updated
+- [x] `go test ./...` passes, including new Claude client and updated
       config tests.
-- [ ] README documents both providers' setup clearly enough that a new
+- [x] README documents both providers' setup clearly enough that a new
       user can pick one without reading the Go source.
 
 ## Main risk

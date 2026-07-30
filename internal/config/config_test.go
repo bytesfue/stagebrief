@@ -84,7 +84,10 @@ var requiredEnvVars = []string{
 // so defaults are deterministic regardless of the host shell's environment.
 var optionalEnvVars = []string{
 	"CI_API_V4_URL",
+	"LLM_PROVIDER",
 	"OPENAI_MODEL",
+	"ANTHROPIC_API_KEY",
+	"ANTHROPIC_MODEL",
 	"GITLAB_PROJECT_NAME",
 	"SHOW_CHANGED_FILES",
 	"SHOW_RAW_COMMITS",
@@ -168,6 +171,15 @@ func TestLoad_DefaultsForOptionalVars(t *testing.T) {
 	if cfg.OpenAIModel != "gpt-5-mini" {
 		t.Errorf("OpenAIModel = %q, want default", cfg.OpenAIModel)
 	}
+	if cfg.LLMProvider != "openai" {
+		t.Errorf("LLMProvider = %q, want default %q", cfg.LLMProvider, "openai")
+	}
+	if cfg.AnthropicModel != "claude-haiku-4-5" {
+		t.Errorf("AnthropicModel = %q, want default", cfg.AnthropicModel)
+	}
+	if cfg.AnthropicAPIKey != "" {
+		t.Errorf("AnthropicAPIKey = %q, want empty when unset and provider is openai", cfg.AnthropicAPIKey)
+	}
 	if cfg.ProjectName != cfg.GitLabProjectID {
 		t.Errorf("ProjectName = %q, want it to default to GitLabProjectID %q", cfg.ProjectName, cfg.GitLabProjectID)
 	}
@@ -194,6 +206,7 @@ func TestLoad_OverridesForOptionalVars(t *testing.T) {
 
 	t.Setenv("CI_API_V4_URL", "https://gitlab.example.com/api/v4")
 	t.Setenv("OPENAI_MODEL", "gpt-5")
+	t.Setenv("ANTHROPIC_MODEL", "claude-sonnet-5")
 	t.Setenv("GITLAB_PROJECT_NAME", "My Project")
 	t.Setenv("SHOW_CHANGED_FILES", "false")
 	t.Setenv("SHOW_RAW_COMMITS", "false")
@@ -212,6 +225,9 @@ func TestLoad_OverridesForOptionalVars(t *testing.T) {
 	if cfg.OpenAIModel != "gpt-5" {
 		t.Errorf("OpenAIModel = %q", cfg.OpenAIModel)
 	}
+	if cfg.AnthropicModel != "claude-sonnet-5" {
+		t.Errorf("AnthropicModel = %q", cfg.AnthropicModel)
+	}
 	if cfg.ProjectName != "My Project" {
 		t.Errorf("ProjectName = %q", cfg.ProjectName)
 	}
@@ -229,5 +245,62 @@ func TestLoad_OverridesForOptionalVars(t *testing.T) {
 	}
 	if cfg.NotifyOnNoChanges {
 		t.Error("NotifyOnNoChanges = true, want false")
+	}
+}
+
+func TestLoad_DefaultProviderRequiresOnlyOpenAIKey(t *testing.T) {
+	setAllRequiredEnvVars(t)
+	clearOptionalEnvVars(t)
+	// ANTHROPIC_API_KEY intentionally left unset — must not be required
+	// when LLM_PROVIDER is unset (defaults to openai).
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error with default provider and no ANTHROPIC_API_KEY: %v", err)
+	}
+	if cfg.LLMProvider != "openai" {
+		t.Errorf("LLMProvider = %q, want %q", cfg.LLMProvider, "openai")
+	}
+}
+
+func TestLoad_ClaudeProviderRequiresAnthropicKeyNotOpenAI(t *testing.T) {
+	for _, key := range requiredEnvVars {
+		if key == "OPENAI_API_KEY" {
+			t.Setenv(key, "") // intentionally left unset — must not be required under claude
+			continue
+		}
+		t.Setenv(key, "value-for-"+key)
+	}
+	clearOptionalEnvVars(t)
+	t.Setenv("LLM_PROVIDER", "claude")
+	t.Setenv("ANTHROPIC_API_KEY", "test-anthropic-key")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error with claude provider and no OPENAI_API_KEY: %v", err)
+	}
+	if cfg.LLMProvider != "claude" {
+		t.Errorf("LLMProvider = %q, want %q", cfg.LLMProvider, "claude")
+	}
+	if cfg.AnthropicAPIKey != "test-anthropic-key" {
+		t.Errorf("AnthropicAPIKey = %q, want %q", cfg.AnthropicAPIKey, "test-anthropic-key")
+	}
+}
+
+func TestLoad_ClaudeProviderMissingAnthropicKey(t *testing.T) {
+	setAllRequiredEnvVars(t)
+	clearOptionalEnvVars(t)
+	t.Setenv("LLM_PROVIDER", "claude")
+	// ANTHROPIC_API_KEY intentionally left unset.
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error for missing ANTHROPIC_API_KEY under claude provider, got nil")
+	}
+	if !strings.Contains(err.Error(), "ANTHROPIC_API_KEY") {
+		t.Errorf("expected error to mention ANTHROPIC_API_KEY, got: %v", err)
+	}
+	if strings.Contains(err.Error(), "OPENAI_API_KEY") {
+		t.Errorf("did not expect error to mention OPENAI_API_KEY under claude provider, got: %v", err)
 	}
 }
