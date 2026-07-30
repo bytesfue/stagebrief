@@ -115,10 +115,10 @@ for the same caution applied to the OpenAI side.>
 **Gate:** `go build ./...` succeeds; `internal/llm` tests green with no
 behavioural change to the OpenAI path.
 
-- [ ] Introduce a `ChatCompleter` interface in `internal/llm` exposing
+- [x] Introduce a `ChatCompleter` interface in `internal/llm` exposing
       `ChatCompletion(systemPrompt, userPrompt string) (Result, error)`.
-- [ ] Change `Summarise` to accept a `ChatCompleter` instead of `*Client`.
-- [ ] Confirm `*Client` (OpenAI) satisfies the interface with no signature
+- [x] Change `Summarise` to accept a `ChatCompleter` instead of `*Client`.
+- [x] Confirm `*Client` (OpenAI) satisfies the interface with no signature
       changes.
 
 ### Pass 2 — Claude client

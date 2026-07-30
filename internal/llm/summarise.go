@@ -55,8 +55,14 @@ func BuildPrompt(input Input) string {
 	return sb.String()
 }
 
+// ChatCompleter is satisfied by any LLM client that can turn a system and
+// user prompt into a Result, letting Summarise work with any provider.
+type ChatCompleter interface {
+	ChatCompletion(systemPrompt, userPrompt string) (Result, error)
+}
+
 // Summarise calls the LLM and returns a designer-friendly summary.
-func Summarise(client *Client, input Input) (Result, error) {
+func Summarise(client ChatCompleter, input Input) (Result, error) {
 	prompt := BuildPrompt(input)
 
 	result, err := client.ChatCompletion(systemPrompt, prompt)
