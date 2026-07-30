@@ -35,13 +35,16 @@ None.
 ## User decisions
 
 - (2026-07-30) Claude client supports two models, same two-tier shape as
-  the OpenAI side: `claude-sonnet-5` as default, `claude-opus-5` as the
+  the OpenAI side: `claude-haiku-4-5` as default, `claude-sonnet-5` as the
   higher-quality secondary tier. Pricing (per 1M tokens, converted to
-  per-1k in `claudeModelPricing`): `claude-sonnet-5` $3.00 in / $15.00 out
-  (standard rate — Anthropic's $2.00/$10.00 intro pricing for Sonnet 5 was
-  in effect through 2026-08-31 at the time of writing, but was treated as
-  temporary and not used, so the table doesn't go stale within a month),
-  `claude-opus-5` $5.00 in / $25.00 out.
+  per-1k in `claudeModelPricing`): `claude-haiku-4-5` $1.00 in / $5.00 out,
+  `claude-sonnet-5` $3.00 in / $15.00 out (standard rate — Anthropic's
+  $2.00/$10.00 intro pricing for Sonnet 5 was in effect through
+  2026-08-31 at the time of writing, but was treated as temporary and not
+  used, so the table doesn't go stale within a month). Initially chosen as
+  Sonnet 5 default / Opus 5 secondary, then corrected same-day to Haiku
+  4.5 default / Sonnet 5 secondary — a cheaper baseline, closer in spirit
+  to gpt-5-mini's role as the cheap default on the OpenAI side.
 
 - (2026-07-29) Provider is a GitLab CI variable, `LLM_PROVIDER`, with
   values `openai` (default) and `claude`. Only one client is ever active

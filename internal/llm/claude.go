@@ -12,7 +12,7 @@ import (
 	"github.com/bytesfue/stagingbrief/internal/httpretry"
 )
 
-const defaultClaudeModel = "claude-sonnet-5"
+const defaultClaudeModel = "claude-haiku-4-5"
 const defaultClaudeBaseURL = "https://api.anthropic.com/v1"
 const anthropicVersion = "2023-06-01"
 
@@ -99,8 +99,8 @@ var claudeModelPricing = map[string]struct {
 	InputPer1k  float64
 	OutputPer1k float64
 }{
-	"claude-sonnet-5": {InputPer1k: 0.003000, OutputPer1k: 0.015000},
-	"claude-opus-5":   {InputPer1k: 0.005000, OutputPer1k: 0.025000},
+	"claude-haiku-4-5": {InputPer1k: 0.001000, OutputPer1k: 0.005000},
+	"claude-sonnet-5":  {InputPer1k: 0.003000, OutputPer1k: 0.015000},
 }
 
 func (c *ClaudeClient) ChatCompletion(systemPrompt, userPrompt string) (Result, error) {

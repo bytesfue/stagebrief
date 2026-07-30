@@ -208,14 +208,14 @@ func TestEstimateClaudeCost(t *testing.T) {
 	}{
 		{
 			name:         "known model with usage",
-			model:        "claude-sonnet-5",
+			model:        "claude-haiku-4-5",
 			inputTokens:  1000,
 			outputTokens: 1000,
-			want:         0.003000 + 0.015000,
+			want:         0.001000 + 0.005000,
 		},
 		{
 			name:         "known model, zero tokens",
-			model:        "claude-sonnet-5",
+			model:        "claude-haiku-4-5",
 			inputTokens:  0,
 			outputTokens: 0,
 			want:         0,
@@ -228,11 +228,11 @@ func TestEstimateClaudeCost(t *testing.T) {
 			want:         0,
 		},
 		{
-			name:         "claude-opus-5 pricing",
-			model:        "claude-opus-5",
+			name:         "claude-sonnet-5 pricing",
+			model:        "claude-sonnet-5",
 			inputTokens:  2000,
 			outputTokens: 500,
-			want:         (2000.0/1000)*0.005000 + (500.0/1000)*0.025000,
+			want:         (2000.0/1000)*0.003000 + (500.0/1000)*0.015000,
 		},
 	}
 
