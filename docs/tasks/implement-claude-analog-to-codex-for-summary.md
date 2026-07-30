@@ -34,13 +34,14 @@ None.
 
 ## User decisions
 
-<TODO: which Claude model(s) should be supported/default (e.g. a Sonnet
-tier as the default, matching gpt-5-mini's role as the current cheap
-default), and their per-1k-token pricing — needs a human decision once
-current Anthropic pricing/model names are confirmed from a live,
-authoritative source, not guessed from training data. See
-`docs/tasks/update-the-gpt-models-and-price-to-the-newest-versions-there-ware-only-the-old-ones-present.md`
-for the same caution applied to the OpenAI side.>
+- (2026-07-30) Claude client supports two models, same two-tier shape as
+  the OpenAI side: `claude-sonnet-5` as default, `claude-opus-5` as the
+  higher-quality secondary tier. Pricing (per 1M tokens, converted to
+  per-1k in `claudeModelPricing`): `claude-sonnet-5` $3.00 in / $15.00 out
+  (standard rate — Anthropic's $2.00/$10.00 intro pricing for Sonnet 5 was
+  in effect through 2026-08-31 at the time of writing, but was treated as
+  temporary and not used, so the table doesn't go stale within a month),
+  `claude-opus-5` $5.00 in / $25.00 out.
 
 - (2026-07-29) Provider is a GitLab CI variable, `LLM_PROVIDER`, with
   values `openai` (default) and `claude`. Only one client is ever active
@@ -127,19 +128,19 @@ behavioural change to the OpenAI path.
 existing suite (rate limit with/without error body, retry-then-succeed,
 request shape, cost estimation) and satisfies `ChatCompleter`.
 
-- [ ] Add a Claude client (e.g. `internal/llm/claude.go`) implementing
+- [x] Add a Claude client (e.g. `internal/llm/claude.go`) implementing
       Anthropic's Messages API: request/response structs matching its
       actual shape (top-level `system`, block-based `content`,
       `input_tokens`/`output_tokens` usage), `x-api-key` +
       `anthropic-version` headers, reusing `internal/httpretry` for
       retries.
-- [ ] Add a Claude-specific pricing table and cost calculation, per the
+- [x] Add a Claude-specific pricing table and cost calculation, per the
       model(s)/prices resolved in User decisions.
-- [ ] Map Anthropic's error responses (rate limit, other API errors) onto
+- [x] Map Anthropic's error responses (rate limit, other API errors) onto
       the existing shared `ErrQuotaExceeded`/`ErrAPIError` sentinels from
       `internal/llm/errors.go`, so `cmd/notify`'s existing error handling
       (main.go:96-104) needs no provider-specific branches.
-- [ ] Test suite mirroring `internal/llm/client_test.go`'s cases against
+- [x] Test suite mirroring `internal/llm/client_test.go`'s cases against
       an `httptest` server standing in for the Anthropic API.
 
 ### Pass 3 — Config, wiring, and docs
