@@ -53,18 +53,18 @@ None.
 
 ## Acceptance
 
-- [ ] `defaultModel` in `internal/llm/client.go` and `OpenAIModel` default
+- [x] `defaultModel` in `internal/llm/client.go` and `OpenAIModel` default
       in `internal/config/config.go` both point to the same, currently
-      available OpenAI model.
-- [ ] `modelPricing` in `internal/llm/client.go` contains entries for all
+      available OpenAI model. (Both `gpt-5-mini`.)
+- [x] `modelPricing` in `internal/llm/client.go` contains entries for all
       models the codebase can select (including any new default), with
       per-1k-token input/output prices matching OpenAI's published pricing
-      as of the update date.
-- [ ] The "Last updated" comment above `modelPricing` reflects the date of
-      this change.
-- [ ] `internal/llm/client_test.go` and `internal/config/config_test.go`
+      as of the update date. (`gpt-5-mini` and `gpt-5`.)
+- [x] The "Last updated" comment above `modelPricing` reflects the date of
+      this change. (Reads "Last updated: July 2026".)
+- [x] `internal/llm/client_test.go` and `internal/config/config_test.go`
       pass with updated model/price expectations.
-- [ ] `go test ./...` passes.
+- [x] `go test ./...` passes.
 
 ## Main risk
 
