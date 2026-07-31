@@ -192,6 +192,32 @@ func TestOpenAIChatCompletion_SendsExpectedRequest(t *testing.T) {
 	}
 }
 
+func TestOpenAIChatCompletion_OmitsTemperature(t *testing.T) {
+	// The gpt-5 family only accepts the default temperature (1) and rejects
+	// any explicit value with a 400 unsupported_value error, so the request
+	// body must not include a "temperature" field at all.
+	var gotRawBody map[string]any
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&gotRawBody); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"choices": [{"message": {"role": "assistant", "content": "ok"}}]}`))
+	}))
+	defer server.Close()
+
+	client := newTestOpenAIClient(server.URL)
+
+	if _, err := client.ChatCompletion("system", "user"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, present := gotRawBody["temperature"]; present {
+		t.Errorf("expected no \"temperature\" field in request body, got: %+v", gotRawBody)
+	}
+}
+
 func TestEstimateOpenAICost(t *testing.T) {
 	tests := []struct {
 		name             string

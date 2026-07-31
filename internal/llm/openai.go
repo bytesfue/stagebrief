@@ -66,9 +66,8 @@ type openAIMessage struct {
 }
 
 type openAIRequest struct {
-	Model       string          `json:"model"`
-	Messages    []openAIMessage `json:"messages"`
-	Temperature float64         `json:"temperature"`
+	Model    string          `json:"model"`
+	Messages []openAIMessage `json:"messages"`
 }
 
 type openAIResponse struct {
@@ -104,13 +103,14 @@ var openAIModelPricing = map[string]struct {
 }
 
 func (c *OpenAIClient) ChatCompletion(systemPrompt, userPrompt string) (Result, error) {
+	// No temperature field: the gpt-5 family only accepts the default (1)
+	// and rejects any other value with a 400 unsupported_value error.
 	reqBody := openAIRequest{
 		Model: c.model,
 		Messages: []openAIMessage{
 			{Role: "system", Content: systemPrompt},
 			{Role: "user", Content: userPrompt},
 		},
-		Temperature: 0.3,
 	}
 
 	body, err := json.Marshal(reqBody)
