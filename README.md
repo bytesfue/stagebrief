@@ -168,7 +168,9 @@ giving you more control over which channel receives messages.
 ## Requirements
 
 - GitLab CI/CD pipeline
-- OpenAI API key ([platform.openai.com](https://platform.openai.com))
+- An OpenAI or Anthropic API key, depending on which `LLM_PROVIDER` you use
+  ([platform.openai.com](https://platform.openai.com) /
+  [console.anthropic.com](https://console.anthropic.com))
 - Slack workspace with a bot token
 
 ---
