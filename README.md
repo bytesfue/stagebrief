@@ -41,7 +41,7 @@ deploy, when there's no previous pipeline to compare against.
 ```yaml
 notify-staging:
   stage: notify
-  image: bytesfue/stagingbrief:v1.0.0  # Pin to a specific version for reproducibility
+  image: bytesfue/stagingbrief:v0.3.1  # Pin to a specific version for reproducibility
   script:
     - /notify
   rules:
@@ -49,6 +49,7 @@ notify-staging:
   variables:
     GITLAB_PROJECT_ID: $CI_PROJECT_ID
     GITLAB_TOKEN: $STAGINGBRIEF_GITLAB_TOKEN
+    LLM_PROVIDER: openai  # optional — this is the default if unset; use "claude" to switch providers
     OPENAI_API_KEY: $STAGINGBRIEF_OPENAI_KEY
     SLACK_BOT_TOKEN: $STAGINGBRIEF_SLACK_BOT_TOKEN
     SLACK_CHANNEL_ID: $STAGINGBRIEF_SLACK_CHANNEL_ID
