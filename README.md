@@ -41,7 +41,7 @@ deploy, when there's no previous pipeline to compare against.
 ```yaml
 notify-staging:
   stage: notify
-  image: bytesfue/stagingbrief:v0.3.1  # Pin to a specific version for reproducibility
+  image: bytesfue/stagingbrief:latest  # Or pin to a specific version for reproducibility
   script:
     - /notify
   rules:
